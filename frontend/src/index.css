@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ================= Scroll pastel uniforme ================= */
+.custom-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #c9b7ff;   /* Color pastel morado suave */
+  border-radius: 10px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: #b8a3ff;   /* Hover un poquito más oscuro */
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Scroll en Firefox */
+.custom-scroll {
+  scrollbar-width: thin; 
+  scrollbar-color: #c9b7ff transparent;
+  -webkit-overflow-scrolling: touch; /* Scroll suave en móviles iOS */
+}
+
+/* ================= Botones y hover ================= */
+button {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+/* ================= Módulos flotantes ================= */
+.rnd-module {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+  overflow: hidden;
+  transition: all 0.2s ease-in-out;
+}
+
+.rnd-module:hover {
+  box-shadow: 0 10px 35px rgba(0,0,0,0.3);
+}
+
+/* ================= Scroll interno de módulos ================= */
+.rnd-module .custom-scroll {
+  max-height: 100%;
+  overflow: auto;
+  padding-right: 4px; /* Evita que el contenido se oculte detrás del scroll */
+}
+
+/* ================= Sidebar ================= */
+.sidebar {
+  width: 280px;
+  height: 100%;
+  background: rgba(255,255,255,0.3);
+  border: 1px solid rgba(255,255,255,0.4);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+}
+
+/* ================= Sidebar botones ================= */
+.sidebar button {
+  transition: all 0.2s ease-in-out;
+  border-radius: 12px;
+  padding: 0.5rem 1rem;
+}
+
+.sidebar button:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* ================= Responsividad ================= */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    border-radius: 0;
+    padding: 1rem;
+  }
+}

@@ -1,0 +1,42 @@
+# ------------------------
+# Base image
+# ------------------------
+FROM node:24-alpine
+
+# ------------------------
+# Configuración del directorio de trabajo
+# ------------------------
+WORKDIR /app
+
+# ------------------------
+# Copiar package.json y package-lock.json y instalar dependencias
+# ------------------------
+COPY package*.json ./
+RUN npm install --production
+
+# ------------------------
+# Copiar todo el proyecto
+# ------------------------
+COPY . .
+
+# ------------------------
+# Variables de entorno por defecto
+# Fly.io sobrescribirá estas con fly.toml
+# ------------------------
+ENV PORT=3000
+ENV NODE_ENV=production
+
+# ------------------------
+# Exponer el puerto que Fly.io va a usar
+# ------------------------
+EXPOSE 3000
+
+# ------------------------
+# Inicializar proxy si existe HTTP_PROXY
+# ------------------------
+RUN npm install global-tunnel-ng
+
+# ------------------------
+# Comando de inicio
+# ------------------------
+CMD ["node", "index.js"]

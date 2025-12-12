@@ -1,0 +1,16 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Frontend build
+frontend/dist/
+build/
+
+# Entorno
+.env
+backend/keys/
+frontend/.env
+
+# Sistema
+.DS_Store
+Thumbs.db

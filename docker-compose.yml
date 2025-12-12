@@ -1,0 +1,27 @@
+version: "3.8"
+services:
+  backend:
+    build: ./backend
+    ports: ["3000:3000"]
+    environment:
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+      - STRIPE_SECRET=${STRIPE_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - HF_API_KEY=${HF_API_KEY}
+      - OLLAMA_URL=http://ollama:11434
+    depends_on:
+      - ollama
+
+  frontend:
+    build: ./frontend
+    ports: ["5173:80"]
+    depends_on:
+      - backend
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    # Note: Ollama may require additional privileges; check Ollama docs
