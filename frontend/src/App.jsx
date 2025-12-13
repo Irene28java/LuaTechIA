@@ -9,17 +9,12 @@ import LandingPrincipal from "./pages/LandingPrincipal.jsx";
 import Login from "./pages/Login.jsx";
 import HomeIntro from "./pages/HomeIntro.jsx";
 import Subscription from "./pages/Subscription.jsx";
-import ChatWorkspace from "./pages/ChatWorkspace.jsx";
+import ChatAdvance from "./pages/ChatAdvance.jsx";
 
-// Sidebar de ejemplo para el workspace
-function Sidebar() {
-  return (
-    <div className="w-64 bg-gray-800 text-white p-4 flex flex-col">
-      <h2 className="text-xl font-bold mb-4">Sidebar</h2>
-      <p>Opciones del menú</p>
-    </div>
-  );
-}
+
+
+// Componentes
+import GoogleDriveKLM from "./components/google/GoogleDriveKLM.jsx"; // Asegúrate de que la ruta sea correcta
 
 export default function App() {
   return (
@@ -30,6 +25,10 @@ export default function App() {
           <Route path="/" element={<LandingPrincipal />} />
           <Route path="/login" element={<Login />} />
 
+          {/* ---------------- INICIO CONEXIÓN CON GOOGLE ---------------- */}
+          <Route path="/google-drive" element={<GoogleDriveKLM />} />
+          {/* Puedes agregar la ruta de GoogleDriveKLM donde quieras */}
+          
           {/* ---------------- RUTAS PRIVADAS ---------------- */}
           <Route
             path="/home-intro"
@@ -47,13 +46,12 @@ export default function App() {
               </PrivateRoute>
             }
           />
-
-          {/* ---------------- WORKSPACE TIPO CHATGPT ---------------- */}
+          {/* ---------------- WORKSPACE PRINCIPAL ---------------- */}
           <Route
             path="/workspace"
             element={
               <PrivateRoute>
-                <ChatWorkspace sidebarProps={{ component: Sidebar, props: {} }} />
+                <ChatAdvance />
               </PrivateRoute>
             }
           />
