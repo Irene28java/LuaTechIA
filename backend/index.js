@@ -53,10 +53,5 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Error interno del servidor" });
 });
 
-// -------------------- Levantar servidor --------------------
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Backend corriendo en http://localhost:${PORT}`);
-});
-
+// Exportar el backend para ser usado en el servidor principal
 export default app;

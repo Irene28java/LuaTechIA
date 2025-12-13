@@ -20,12 +20,12 @@ const supabase = createClient(
 
 // ----------------- MATERIAS PERMITIDAS -----------------
 const allowedSubjects = [
-  "naturales","matematicas","lengua","sociales","ingles",
-  "educacion artistica","musica","educacion fisica","valores"
+  "naturales", "matematicas", "lengua", "sociales", "ingles",
+  "educacion artistica", "musica", "educacion fisica", "valores"
 ];
 
 // ----------------- RESPUESTA EMOCIONAL -----------------
-function emotionalResponse(message, role="child", age=6, subject="general") {
+function emotionalResponse(message, role = "child", age = 6, subject = "general") {
   const text = message.toLowerCase();
   const out = [];
 
@@ -71,11 +71,14 @@ router.post("/stream", authenticate, async (req, res) => {
       conversationId
     } = req.body;
 
+    console.log("Solicitud recibida:", req.body);  // Log de la solicitud completa
+
     if (!message || typeof message !== "string") {
       return res.status(400).json({ error: "El campo 'message' es obligatorio y debe ser string" });
     }
 
     const mat = allowedSubjects.includes(subject.toLowerCase()) ? subject.toLowerCase() : "naturales";
+    console.log("Materia seleccionada:", mat);  // Log de la materia seleccionada
 
     // Cabeceras SSE
     res.setHeader("Content-Type", "text/event-stream");
@@ -84,6 +87,7 @@ router.post("/stream", authenticate, async (req, res) => {
 
     // Guardar mensaje del usuario en Supabase
     if (conversationId) {
+      console.log("Guardando mensaje en Supabase para la conversación:", conversationId);
       await supabase.from("messages").insert([
         { conversation_id: conversationId, role: "user", content: message }
       ]);
@@ -92,18 +96,24 @@ router.post("/stream", authenticate, async (req, res) => {
     // ----------------- RESPUESTA EMOCIONAL -----------------
     const emo = emotionalResponse(message, role, age, mat);
     if (emo) {
+      console.log("Respuesta emocional generada:", emo);  // Log de la respuesta emocional
       res.write(`data: ${emo}\n\n`);
     }
 
     // ----------------- STREAMING AI -----------------
+    console.log("Iniciando el proceso de streaming de IA...");
     await tryModelsSequentially({
       message,
       role,
       age,
       subject: mat,
       specialNeeds,
-      onChunk: (chunk) => res.write(`data: ${chunk}\n\n`),
+      onChunk: (chunk) => {
+        console.log("Enviando chunk de IA:", chunk);  // Log del chunk recibido
+        res.write(`data: ${chunk}\n\n`);
+      },
       onEnd: async () => {
+        console.log("Finalizando el streaming de IA...");  // Log al finalizar el streaming
         res.write("data: [DONE]\n\n");
         res.end();
       }
