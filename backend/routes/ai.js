@@ -1,12 +1,24 @@
+// src/routes/ai.js
 import express from "express";
 import { authenticate } from "../middlewares/authenticate.js";
 import { tryModelsSequentially } from "../utils/chatAI.js";
 import { createClient } from "@supabase/supabase-js";
+import 'dotenv/config';
 
 const router = express.Router();
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-// Materias permitidas
+// ----------------- VALIDAR VARIABLES DE ENTORNO -----------------
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error("Debes definir SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en tu .env");
+}
+
+// ----------------- INIT SUPABASE -----------------
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+// ----------------- MATERIAS PERMITIDAS -----------------
 const allowedSubjects = [
   "naturales","matematicas","lengua","sociales","ingles",
   "educacion artistica","musica","educacion fisica","valores"
@@ -45,7 +57,7 @@ function emotionalResponse(message, role="child", age=6, subject="general") {
   return null;
 }
 
-// ----------------- STREAM SSE -----------------
+// ----------------- RUTA SSE /stream -----------------
 router.post("/stream", authenticate, async (req, res) => {
   try {
     const {
@@ -59,6 +71,10 @@ router.post("/stream", authenticate, async (req, res) => {
       conversationId
     } = req.body;
 
+    if (!message || typeof message !== "string") {
+      return res.status(400).json({ error: "El campo 'message' es obligatorio y debe ser string" });
+    }
+
     const mat = allowedSubjects.includes(subject.toLowerCase()) ? subject.toLowerCase() : "naturales";
 
     // Cabeceras SSE
@@ -66,20 +82,20 @@ router.post("/stream", authenticate, async (req, res) => {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
-    // Guardar mensaje del usuario
+    // Guardar mensaje del usuario en Supabase
     if (conversationId) {
-      await supabase.from("messages").insert([{ conversation_id: conversationId, role: "user", content: message }]);
+      await supabase.from("messages").insert([
+        { conversation_id: conversationId, role: "user", content: message }
+      ]);
     }
 
-    // Respuesta emocional rápida
+    // ----------------- RESPUESTA EMOCIONAL -----------------
     const emo = emotionalResponse(message, role, age, mat);
     if (emo) {
       res.write(`data: ${emo}\n\n`);
-      res.write("data: [DONE]\n\n");
-      return res.end();
     }
 
-    // Función principal: fallback Ollama → HF → Groq
+    // ----------------- STREAMING AI -----------------
     await tryModelsSequentially({
       message,
       role,

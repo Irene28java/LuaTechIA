@@ -1,9 +1,9 @@
-//BACKEND>MIDDLEWARES>AUTHENTICATE.JS
-
 import jwt from "jsonwebtoken";
 
 export function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
+
+  console.log("Authorization Header:", authHeader);  // Log para depuración
 
   if (!authHeader) {
     return res.status(401).json({ error: "No autorizado. Falta Authorization header." });

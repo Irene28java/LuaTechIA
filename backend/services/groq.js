@@ -1,13 +1,3 @@
-//backend>services>grok.js
-
-import fetch from "node-fetch";
-import pkg from "https-proxy-agent";
-const { HttpsProxyAgent } = pkg;
-import { config } from "../config.js";
-
-// Proxy opcional
-const proxyAgent = new HttpsProxyAgent(process.env.HTTPS_PROXY || "http://proxy.fly.dev:8080");
-
 /**
  * Llama a Groq API con proxy si es necesario
  * @param {string} prompt
@@ -17,14 +7,14 @@ export async function callGroq(prompt) {
     method: "POST",
     body: JSON.stringify({
       model: process.env.GROQ_MODEL,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: prompt }], // Aquí se forma el JSON con el `prompt`
     }),
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${config.groq}`,
     },
-    agent: proxyAgent
+    agent: proxyAgent // Si es necesario un proxy
   });
 
-  return await response.json();
+  return await response.json(); // El JSON que devuelve la API de Groq
 }

@@ -1,37 +1,33 @@
-
-version: '3.8'
-
+version: "3.8"
 services:
+  # Servicio de Backend (Node.js)
   backend:
-    build: .
+    build: ./backend          # Directorio donde está tu backend
     ports:
-      - "3000:3000"
+      - "3000:3000"            # Exponer el puerto 3000 en el host
     environment:
-      # Variables de entorno de la app
       - PORT=3000
-      - JWT_SECRET=${JWT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}  # Asegúrate de tener estas variables en un archivo .env
       - STRIPE_SECRET=${STRIPE_SECRET}
-      - FRONTEND_URL=${FRONTEND_URL}
+      - FRONTEND_URL=http://localhost:5173  # URL del frontend
       - HF_API_KEY=${HF_API_KEY}
-      - OLLAMA_URL=http://ollama:11434
-
-      # 🔥 Proxy global para Internet (Groq, OpenAI, etc.)
-      - HTTP_PROXY=http://proxy.fly.dev:8080
-      - HTTPS_PROXY=http://proxy.fly.dev:8080
-      - NODE_TLS_REJECT_UNAUTHORIZED=0
-
+      - OLLAMA_URL=http://ollama:11434  # Accediendo al servicio de Ollama
     depends_on:
-      - ollama
+      - ollama   # El backend espera a que Ollama esté listo
 
-  ollama:
-    image: ollama/ollama:latest
+  # Servicio de Frontend (probablemente una app de React)
+  frontend:
+    build: ./frontend         # Directorio donde está tu frontend
     ports:
-      - "11434:11434"
+      - "5173:80"              # Exponer el puerto 5173 en el host (o el que uses)
+    depends_on:
+      - backend                # El frontend depende de que el backend esté funcionando
+
+  # Servicio de Ollama (en contenedor)
+  ollama:
+    image: ollama/ollama:latest  # Usa la imagen oficial de Ollama desde Docker Hub
+    restart: unless-stopped     # Reinicia automáticamente si el contenedor se detiene
+    ports:
+      - "11434:11434"           # El puerto 11434 será accesible desde el host (para la conexión API)
     environment:
-      # Proxy para Ollama si necesita salida a Internet
-      - HTTP_PROXY=http://proxy.fly.dev:8080
-      - HTTPS_PROXY=http://proxy.fly.dev:8080
-      - NODE_TLS_REJECT_UNAUTHORIZED=0
-    # Volúmenes si Ollama necesita persistencia de modelos o datos
-    # volumes:
-    #   - ./ollama-data:/root/.ollama
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY}  # Asegúrate de tener tu API Key aquí
