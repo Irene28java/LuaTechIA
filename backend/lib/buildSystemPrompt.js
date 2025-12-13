@@ -1,5 +1,4 @@
 // backend/lib/buildSystemPrompt.js
-
 export function buildSystemPrompt({
   userId,
   role,
