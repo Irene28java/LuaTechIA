@@ -24,7 +24,7 @@
 /* Scroll en Firefox */
 .custom-scroll {
   scrollbar-width: thin; 
-  scrollbar-color: #c9b7ff transparent;
+  scrollbar-color: #c9b7ff transparent;  /* Eliminado !important */
   -webkit-overflow-scrolling: touch; /* Scroll suave en móviles iOS */
 }
 
@@ -32,40 +32,53 @@
 button {
   transition: all 0.2s ease-in-out;
   cursor: pointer;
+  color: #000;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
 }
 
 button:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  color: #fff;
+  background-color: #8B5CF6;
+  border-color: #8B5CF6;
+}
+
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.5); /* Sombra morada cuando el botón está enfocado */
 }
 
 /* ================= Módulos flotantes ================= */
 .rnd-module {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.2);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
   overflow: hidden;
   transition: all 0.2s ease-in-out;
 }
 
 .rnd-module:hover {
-  box-shadow: 0 10px 35px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.3);
 }
 
 /* ================= Scroll interno de módulos ================= */
 .rnd-module .custom-scroll {
   max-height: 100%;
   overflow: auto;
-  padding-right: 4px; /* Evita que el contenido se oculte detrás del scroll */
+  padding-right: 4px;
 }
 
 /* ================= Sidebar ================= */
 .sidebar {
   width: 280px;
   height: 100%;
-  background: rgba(255,255,255,0.3);
-  border: 1px solid rgba(255,255,255,0.4);
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -73,7 +86,6 @@ button:hover {
   overflow-y: auto;
 }
 
-/* ================= Sidebar botones ================= */
 .sidebar button {
   transition: all 0.2s ease-in-out;
   border-radius: 12px;
@@ -82,7 +94,12 @@ button:hover {
 
 .sidebar button:hover {
   transform: scale(1.03);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.5);
 }
 
 /* ================= Responsividad ================= */

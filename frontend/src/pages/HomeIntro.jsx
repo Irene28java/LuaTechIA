@@ -10,7 +10,7 @@ export default function HomeIntro() {
   };
 
   return (
-    <section className="relative w-full h-screen flex flex-col items-center justify-center text-center bg-[#030b17] overflow-hidden">
+    <section className="relative w-full h-screen flex flex-col items-center justify-center text-center bg-[#344759ff] overflow-hidden">
       {/* Fondos con blur */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-500/10 blur-[160px]" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-600/10 blur-[160px]" />

@@ -4,8 +4,8 @@ import { fileURLToPath } from "url";
 import cors from "cors";
 import dotenv from "dotenv";
 
-// Importar backend
-import backendApp from "./backend/index.js";  // Asegúrate de que este sea el path correcto a tu archivo index.js del backend
+// Importa el backend (solo rutas)
+import backendApp from "./backend/index.js";
 
 dotenv.config();
 
@@ -14,26 +14,35 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Configuración de CORS y seguridad
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+// -------------------- Middlewares globales --------------------
 app.use(express.json());
 
-// -------------------- Rutas de backend --------------------
-// Montar backend en /api
-app.use("/api", backendApp);  // Aquí se monta todo el backend que está en backend/index.js
+// CORS correcto para monorepo (frontend + backend mismo dominio)
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 
-// -------------------- Servir el frontend compilado --------------------
-// Carpeta dist generada por Vite
+// -------------------- Backend montado en /api --------------------
+app.use("/api", backendApp);
+
+// -------------------- Health check Render --------------------
+app.get("/saludz", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
+// -------------------- Servir frontend (Vite build) --------------------
 const frontendPath = path.join(__dirname, "frontend", "dist");
 app.use(express.static(frontendPath));
 
-// Si no es una ruta de la API, se sirve el frontend
+// SPA fallback
 app.get("*", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
-// -------------------- Puerto dinámico (Render o local) --------------------
-const PORT = process.env.PORT || 3000;
+// -------------------- LISTEN (AQUÍ VA EL MENSAJE 🚀) --------------------
+const PORT = process.env.PORT || 10000;
+
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Full App corriendo en http://localhost:${PORT}`);
+  console.log(`🚀 LuaTechIA FULL APP corriendo en puerto ${PORT}`);
 });
