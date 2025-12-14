@@ -8,6 +8,7 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.12.2",
     "@sanity/client": "^7.13.1",
     "@stripe/stripe-js": "^8.5.3",
     "@supabase/supabase-js": "^2.86.0",

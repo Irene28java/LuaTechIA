@@ -1,39 +1,52 @@
-// backend/routes/gmail.js
 import express from "express";
 import { google } from "googleapis";
-import fs from "fs";
+import { OAuth2Client } from "google-auth-library";
 import path from "path";
+import fs from "fs";
 
 const router = express.Router();
 
-// Carga tu JSON de cuenta de servicio
+// Carga tu JSON de cuenta de servicio (si la usas para otros servicios, por ejemplo Gmail API)
 const keyFile = path.join(process.cwd(), "backend/keys/luatechia-service.json");
 
-const auth = new google.auth.GoogleAuth({
-  keyFile,
-  scopes: ["https://www.googleapis.com/auth/gmail.readonly"]
-});
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const service = google.gmail({ version: "v1", auth });
+router.post("/google-login", async (req, res) => {
+  const { token: idToken } = req.body; // Obtenemos el idToken
 
-// Obtener últimos mensajes
-router.get("/messages", async (req, res) => {
   try {
-    const result = await service.users.messages.list({ userId: "me", maxResults: 5 });
-    const messages = result.data.messages || [];
+    // Verifica el idToken recibido
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID, // Este es el CLIENT_ID de tu app
+    });
 
-    const fullMessages = await Promise.all(
-      messages.map(async (msg) => {
-        const detail = await service.users.messages.get({ userId: "me", id: msg.id });
-        const snippet = detail.data.snippet;
-        return { id: msg.id, snippet };
-      })
+    const payload = ticket.getPayload();
+    const email = payload.email;
+
+    // Ahora, vamos a intercambiar el idToken por un access_token
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
     );
 
-    res.json({ messages: fullMessages });
+    // Aquí intercambiamos el idToken por el access_token
+    const { tokens } = await oauth2Client.getToken(idToken);
+    oauth2Client.setCredentials(tokens); // Configuramos el token
+
+    // Usamos el access_token para acceder a los correos de Gmail
+    const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+
+    // Obtener los últimos 5 correos
+    const result = await gmail.users.messages.list({ userId: "me", maxResults: 5 });
+
+    // Responder con los correos
+    res.json({ messages: result.data.messages });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error obteniendo correos" });
+    console.error("Error al autenticar con Google:", err);
+    res.status(500).json({ error: "Error en la autenticación de Google" });
   }
 });
 
