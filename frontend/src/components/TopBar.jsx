@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { FiUser, FiMenu } from "react-icons/fi";
 
-export default function Topbar({ user, onLoginClick, role, onChangeRole }) {
+export default function Topbar({
+  user,
+  onLoginClick,
+  role,
+  onChangeRole,
+  onUpgradeClick,
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -34,24 +40,40 @@ export default function Topbar({ user, onLoginClick, role, onChangeRole }) {
         <option value="docente">Docente</option>
       </select>
 
-      {/* Usuario */}
-      {user ? (
-        <div className="flex items-center gap-2 p-2 bg-white/40 rounded-xl">
-          <FiUser className="text-[#6c7a8c] text-xl" />
-          <span className="text-[#6c7a8c]">{user.name}</span>
-        </div>
-      ) : (
-        <button
-          onClick={onLoginClick}
-          className="
-            bg-white/50 px-4 py-2 rounded-xl
-            text-[#6c7a8c] shadow
-            hover:bg-white/70 transition
-          "
-        >
-          Iniciar Sesión
-        </button>
-      )}
+      {/* Usuario + Pro */}
+      <div className="flex items-center gap-3">
+        {user ? (
+          <>
+            <div className="flex items-center gap-2 p-2 bg-white/40 rounded-xl">
+              <FiUser className="text-[#6c7a8c] text-xl" />
+              <span className="text-[#6c7a8c]">{user.name}</span>
+            </div>
+
+            <button
+              onClick={onUpgradeClick}
+              className="
+                px-4 py-2 rounded-xl
+                bg-gradient-to-r from-pink-400 to-purple-400
+                text-white text-sm shadow
+                hover:scale-105 transition
+              "
+            >
+              Hazte Pro ✨
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={onLoginClick}
+            className="
+              bg-white/50 px-4 py-2 rounded-xl
+              text-[#6c7a8c] shadow
+              hover:bg-white/70 transition
+            "
+          >
+            Iniciar Sesión
+          </button>
+        )}
+      </div>
     </header>
   );
 }

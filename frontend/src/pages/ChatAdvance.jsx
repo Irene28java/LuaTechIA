@@ -1,32 +1,43 @@
-// ------------------ IMPORTS ------------------
+// frontend/src/pages/ChatAdvanced.jsx
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
-import axios from "axios";
 
-import Topbar from "../components/Topbar";
-import ChatBubble from "../components/ChatBubble";
-import ChatInput from "../components/ChatInput";
-import Sidebar from "../components/sidebar";
+import Topbar from "../components/Topbar.jsx";
+import ChatBubble from "../components/ChatBubble.jsx";
+import ChatInput from "../components/ChatInput.jsx";
+import Sidebar from "../components/Sidebar.jsx";
+import Modal from "../components/Modal.jsx";
 
+import Subscription from "./Subscription.jsx";
 import { generateEvaluationPDF } from "../api/pdf.js";
 
 // ------------------ CONSTANTES ------------------
 const MAX_MESSAGES_FREE = 15;
+const LOCAL_STORAGE_KEY = "chat_free_message_count";
 
 // ------------------ COMPONENTE ------------------
 export default function ChatAdvanced() {
-  const { user } = useAuth(); // <<--- usuario real del sistema
+  const { user: authUser } = useAuth();
+  const [user, setUser] = useState(authUser || null);
+  const [role, setRole] = useState("niño");
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
 
-  const [messageCount, setMessageCount] = useState(0);
-  const [role, setRole] = useState("niño");
+  // Mensajes freemium persistentes
+  const [messageCount, setMessageCount] = useState(() => {
+    if (authUser) return 0;
+    return parseInt(localStorage.getItem(LOCAL_STORAGE_KEY)) || 0;
+  });
 
   // Config estudiante
   const [age, setAge] = useState(8);
   const [subject, setSubject] = useState("naturales");
   const [specialNeeds, setSpecialNeeds] = useState([]);
+
+  // Modal de suscripción
+  const [showSubscription, setShowSubscription] = useState(false);
+  const handleUpgrade = () => setShowSubscription(true);
 
   const messagesEndRef = useRef(null);
 
@@ -39,110 +50,131 @@ export default function ChatAdvanced() {
   // ------------------ ENVIAR MENSAJES ------------------
   const sendMessage = (text, roleMessage = "user") => {
     if (!text.trim()) return;
-
     setMessages((prev) => [...prev, { role: roleMessage, text, time: getTime() }]);
   };
 
-  // ------------------ HANDLE SEND ------------------
   const handleSend = () => {
-    if (!input.trim()) return;
+    const text = input.trim();
+    if (!text) return;
 
-    if (!user) {
-      alert("⚠️ Estás usando la versión gratuita. Crea una cuenta para guardar tu progreso.");
-    }
-
+    // Control para usuarios no autenticados
     if (!user && messageCount >= MAX_MESSAGES_FREE) {
-      alert("🚀 Has alcanzado el límite de mensajes. Suscríbete para continuar.");
+      setShowSubscription(true);
       return;
     }
 
-    sendMessage(input);
-    if (!user) setMessageCount((prev) => prev + 1);
+    sendMessage(text, "user");
 
-    autoGenerateExam(input); // <<-- se generan exámenes automáticamente
+    if (!user) {
+      const newCount = messageCount + 1;
+      setMessageCount(newCount);
+      localStorage.setItem(LOCAL_STORAGE_KEY, newCount.toString());
+    }
+
+    if (detectExamRequest(text)) {
+      autoGenerateExam(text);
+    }
+
     setInput("");
+  };
+
+  // ------------------ DETECCIÓN DE EXÁMENES ------------------
+  const detectExamRequest = (text) => {
+    const lower = text.toLowerCase();
+    const triggers = [
+      "examen",
+      "prueba",
+      "evaluación",
+      "test",
+      "hazme un examen",
+      "crea un examen",
+      "generar examen",
+    ];
+    return triggers.some((t) => lower.includes(t));
   };
 
   // ------------------ GENERACIÓN AUTOMÁTICA DE EXÁMENES ------------------
   const autoGenerateExam = (userText) => {
-    const numQuestions = 20;
-    const questions = Array.from({ length: numQuestions }).map((_, i) =>
-      generateQuestion(subject, age, i)
-    );
+    let numQuestions = 20;
+    const match = userText.match(/(\d+)\s*(preguntas|items|cuestiones)/i);
+    if (match) numQuestions = Math.max(20, parseInt(match[1]));
 
     const examMsg = {
       role: "assistant",
       type: "exam",
       title: `Examen de ${subject}`,
       subject: subject,
-      notes: `Examen adaptado para ${age} años. Incluye respuestas correctas.`,
-      questions,
+      notes: "Examen generado automáticamente.",
+      questions: Array.from({ length: numQuestions }).map((_, i) => ({
+        q: `Pregunta ${i + 1}: Explica lo relacionado con ${subject}.`,
+        a: "Respuesta esperada...",
+      })),
     };
 
     sendMessage(`Generando examen de ${subject} con ${numQuestions} preguntas...`, "system");
-
     setTimeout(() => {
-      sendMessage("Tu examen está listo. Creando PDF...", "assistant");
+      sendMessage("Tu examen está listo. Generando PDF...", "assistant");
       processAssistantMessage(examMsg);
-    }, 1000);
+    }, 900);
   };
 
-  const generateQuestion = (subject, age, index) => {
-    const difficulty =
-      age <= 7 ? "fácil" : age <= 10 ? "media" : "avanzada";
-
-    return {
-      q: `(${difficulty}) Pregunta ${index + 1} sobre ${subject}`,
-      options: ["Opción A", "Opción B", "Opción C", "Opción D"],
-      correct: Math.floor(Math.random() * 4),
-    };
-  };
-
-  const processAssistantMessage = async (assistantMessage) => {
-    if (assistantMessage.type === "exam") {
+  const processAssistantMessage = async (assistantMsg) => {
+    if (assistantMsg.type === "exam") {
       await generateEvaluationPDF({
-        title: assistantMessage.title,
+        title: assistantMsg.title || "Evaluación",
         student: user?.name || "Alumno",
-        age,
-        subject: assistantMessage.subject,
-        notes: assistantMessage.notes || "",
-        evaluationData: {
-          questions: assistantMessage.questions.map((q) => ({
-            question: q.q,
-            options: q.options,
-            correct: q.correct,
-          })),
-        },
+        age: age,
+        subject: assistantMsg.subject || subject,
+        evaluationData: assistantMsg.questions,
+        notes: assistantMsg.notes || "",
       });
     }
   };
 
   // ------------------ FOLDERS Y TEMPLATES ------------------
-  const handleTemplate = async (template) => {
-    sendMessage(`Generando ${template}...`, "system");
-
-    try {
-      const res = await axios.get("http://localhost:5000/templates", {
-        params: { template, subject },
-      });
-
-      setTimeout(() => sendMessage(res.data.content, "assistant"), 1000);
-    } catch {
-      sendMessage("Error generando plantilla.", "system");
-    }
+  const handleTemplate = (template) => {
+    sendMessage(`Generando ${template} para ${subject}...`, "system");
+    setTimeout(() => {
+      sendMessage(`Aquí tienes tu ${template} de ${subject}: [Contenido generado automáticamente]`, "assistant");
+    }, 1000);
   };
 
-  const handleFolder = async (folder) => {
-    sendMessage(`Abriste carpeta: ${folder}`, "system");
+  const handleFolder = (folder) => {
+    sendMessage(`Abriste la carpeta: ${folder}`, "system");
 
-    try {
-      const res = await axios.get(`http://localhost:5000/folders/${folder}`, {
-        params: { subject },
-      });
+    // Exámenes
+    if (folder === "Exámenes") {
+      sendMessage(`Generando examen de ${subject} con 20 preguntas...`, "system");
+      setTimeout(() => {
+        const examMsg = {
+          role: "assistant",
+          type: "exam",
+          title: `Examen de ${subject}`,
+          subject: subject,
+          notes: "Examen generado automáticamente.",
+          questions: Array.from({ length: 20 }).map((_, i) => ({
+            q: `Pregunta ${i + 1}: Explica lo relacionado con ${subject}.`,
+            a: "Respuesta esperada...",
+          })),
+        };
+        sendMessage("Tu examen está listo. Generando PDF...", "assistant");
+        processAssistantMessage(examMsg);
+      }, 1200);
+    }
 
-      setTimeout(() => sendMessage(res.data.content, "assistant"), 1200);
-    } catch {
-      sendMessage(`Error abriendo carpeta ${folder}.`, "system");
+    // Deberes
+    if (folder === "Deberes") {
+      setTimeout(() => sendMessage(`Actividades de ${subject} listas para Deberes: [Lista generada]`, "assistant"), 1200);
+    }
+
+    // Clases
+    if (folder === "Clases") {
+      setTimeout(() => sendMessage(`Pizarra lista: [Ideas y actividades]`, "assistant"), 1200);
+    }
+
+    // Proyecto escolar
+    if (folder === "Proyecto escolar") {
+      setTimeout(() => sendMessage(`[Proyecto generado con tareas de ${subject}]`, "assistant"), 1200);
     }
   };
 
@@ -172,9 +204,14 @@ export default function ChatAdvanced() {
 
       {/* Chat */}
       <main className="flex-1 h-full ml-4 rounded-3xl bg-white/30 backdrop-blur-2xl border border-white/40 shadow-2xl p-6 flex flex-col">
-
         {/* Topbar */}
-        <Topbar user={user} role={role} onChangeRole={setRole} />
+        <Topbar
+          user={authUser || user}
+          role={role}
+          onChangeRole={setRole}
+          onLoginClick={() => setUser({ name: "Usuario", age })}
+          onUpgradeClick={handleUpgrade}
+        />
 
         {/* Contador Freemium */}
         {!user && (
@@ -196,6 +233,13 @@ export default function ChatAdvanced() {
           <ChatInput input={input} setInput={setInput} onSend={handleSend} />
         </div>
       </main>
+
+      {/* Modal de suscripción */}
+      {showSubscription && (
+        <Modal onClose={() => setShowSubscription(false)}>
+          <Subscription onClose={() => setShowSubscription(false)} />
+        </Modal>
+      )}
     </div>
   );
 }

@@ -1,6 +1,5 @@
-// src/App.jsx
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
 
@@ -9,27 +8,23 @@ import LandingPrincipal from "./pages/LandingPrincipal.jsx";
 import Login from "./pages/Login.jsx";
 import HomeIntro from "./pages/HomeIntro.jsx";
 import Subscription from "./pages/Subscription.jsx";
-import ChatAdvance from "./pages/ChatAdvance.jsx";
-
-
+import ChatAdvance from "./pages/ChatAdvanced.jsx";
 
 // Componentes
-import GoogleDriveKLM from "./components/google/GoogleDriveKLM.jsx"; // Asegúrate de que la ruta sea correcta
+import GoogleDriveKLM from "./components/google/GoogleDriveKLM.jsx";
 
 export default function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
-          {/* ---------------- RUTAS PÚBLICAS ---------------- */}
+          {/* Rutas públicas */}
           <Route path="/" element={<LandingPrincipal />} />
           <Route path="/login" element={<Login />} />
-
-          {/* ---------------- INICIO CONEXIÓN CON GOOGLE ---------------- */}
+          <Route path="/workspace" element={<ChatAdvance />} />
           <Route path="/google-drive" element={<GoogleDriveKLM />} />
-          {/* Puedes agregar la ruta de GoogleDriveKLM donde quieras */}
-          
-          {/* ---------------- RUTAS PRIVADAS ---------------- */}
+
+          {/* Rutas privadas → solo usuarios autenticados */}
           <Route
             path="/home-intro"
             element={
@@ -46,18 +41,9 @@ export default function App() {
               </PrivateRoute>
             }
           />
-          {/* ---------------- WORKSPACE PRINCIPAL ---------------- */}
-          <Route
-            path="/workspace"
-            element={
-              <PrivateRoute>
-                <ChatAdvance />
-              </PrivateRoute>
-            }
-          />
 
-          {/* ---------------- REDIRECCIÓN POR DEFECTO ---------------- */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Redirección por defecto */}
+          <Route path="*" element={<LandingPrincipal />} />
         </Routes>
       </Router>
     </AuthProvider>
