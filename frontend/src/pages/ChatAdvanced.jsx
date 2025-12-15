@@ -1,4 +1,3 @@
-// frontend/src/pages/ChatAdvanced.jsx
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -17,25 +16,40 @@ const LOCAL_STORAGE_KEY = "chat_free_message_count";
 
 // ------------------ COMPONENTE ------------------
 export default function ChatAdvanced() {
+  console.log("[ChatAdvanced] componente cargado");
+
   const { user: authUser } = useAuth();
+
   const [user, setUser] = useState(authUser || null);
   const [role, setRole] = useState("niño");
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
 
-  // Mensajes freemium persistentes
+  // ------------------ DEBUG ------------------
+  const [debugLogs, setDebugLogs] = useState([]);
+
+  const logDebug = (msg) => {
+    console.log(msg);
+    setDebugLogs((prev) => [...prev, msg]);
+  };
+
+  logDebug("[ChatAdvanced] render ejecutado");
+  logDebug(`[ChatAdvanced] Sidebar import: ${typeof Sidebar}`);
+  logDebug(`[ChatAdvanced] Topbar import: ${typeof Topbar}`);
+
+  // ------------------ MENSAJES FREE ------------------
   const [messageCount, setMessageCount] = useState(() => {
     if (authUser) return 0;
     return parseInt(localStorage.getItem(LOCAL_STORAGE_KEY)) || 0;
   });
 
-  // Config estudiante
+  // ------------------ CONFIG ESTUDIANTE ------------------
   const [age, setAge] = useState(8);
   const [subject, setSubject] = useState("naturales");
   const [specialNeeds, setSpecialNeeds] = useState([]);
 
-  // Modal de suscripción
+  // ------------------ MODAL ------------------
   const [showSubscription, setShowSubscription] = useState(false);
   const handleUpgrade = () => setShowSubscription(true);
 
@@ -47,9 +61,10 @@ export default function ChatAdvanced() {
     return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   };
 
-  // ------------------ ENVIAR MENSAJES ------------------
+  // ------------------ ENVÍO ------------------
   const sendMessage = (text, roleMessage = "user") => {
     if (!text.trim()) return;
+    logDebug(`[ChatAdvanced] sendMessage → ${roleMessage}: ${text}`);
     setMessages((prev) => [...prev, { role: roleMessage, text, time: getTime() }]);
   };
 
@@ -57,8 +72,8 @@ export default function ChatAdvanced() {
     const text = input.trim();
     if (!text) return;
 
-    // Control para usuarios no autenticados
     if (!user && messageCount >= MAX_MESSAGES_FREE) {
+      logDebug("[ChatAdvanced] límite FREE alcanzado → modal");
       setShowSubscription(true);
       return;
     }
@@ -72,121 +87,61 @@ export default function ChatAdvanced() {
     }
 
     if (detectExamRequest(text)) {
+      logDebug("[ChatAdvanced] solicitud de examen detectada");
       autoGenerateExam(text);
     }
 
     setInput("");
   };
 
-  // ------------------ DETECCIÓN DE EXÁMENES ------------------
+  // ------------------ EXÁMENES ------------------
   const detectExamRequest = (text) => {
-    const lower = text.toLowerCase();
-    const triggers = [
-      "examen",
-      "prueba",
-      "evaluación",
-      "test",
-      "hazme un examen",
-      "crea un examen",
-      "generar examen",
-    ];
-    return triggers.some((t) => lower.includes(t));
+    const triggers = ["examen", "prueba", "evaluación", "test"];
+    return triggers.some((t) => text.toLowerCase().includes(t));
   };
 
-  // ------------------ GENERACIÓN AUTOMÁTICA DE EXÁMENES ------------------
   const autoGenerateExam = (userText) => {
-    let numQuestions = 20;
-    const match = userText.match(/(\d+)\s*(preguntas|items|cuestiones)/i);
-    if (match) numQuestions = Math.max(20, parseInt(match[1]));
+    logDebug("[ChatAdvanced] autoGenerateExam ejecutado");
 
     const examMsg = {
       role: "assistant",
       type: "exam",
       title: `Examen de ${subject}`,
-      subject: subject,
-      notes: "Examen generado automáticamente.",
-      questions: Array.from({ length: numQuestions }).map((_, i) => ({
-        q: `Pregunta ${i + 1}: Explica lo relacionado con ${subject}.`,
-        a: "Respuesta esperada...",
+      subject,
+      questions: Array.from({ length: 20 }).map((_, i) => ({
+        q: `Pregunta ${i + 1}`,
+        a: "Respuesta esperada",
       })),
     };
 
-    sendMessage(`Generando examen de ${subject} con ${numQuestions} preguntas...`, "system");
     setTimeout(() => {
-      sendMessage("Tu examen está listo. Generando PDF...", "assistant");
       processAssistantMessage(examMsg);
-    }, 900);
+    }, 800);
   };
 
   const processAssistantMessage = async (assistantMsg) => {
+    logDebug("[ChatAdvanced] processAssistantMessage");
+
     if (assistantMsg.type === "exam") {
       await generateEvaluationPDF({
-        title: assistantMsg.title || "Evaluación",
+        title: assistantMsg.title,
         student: user?.name || "Alumno",
-        age: age,
-        subject: assistantMsg.subject || subject,
+        age,
+        subject,
         evaluationData: assistantMsg.questions,
-        notes: assistantMsg.notes || "",
       });
     }
   };
 
-  // ------------------ FOLDERS Y TEMPLATES ------------------
-  const handleTemplate = (template) => {
-    sendMessage(`Generando ${template} para ${subject}...`, "system");
-    setTimeout(() => {
-      sendMessage(`Aquí tienes tu ${template} de ${subject}: [Contenido generado automáticamente]`, "assistant");
-    }, 1000);
-  };
-
-  const handleFolder = (folder) => {
-    sendMessage(`Abriste la carpeta: ${folder}`, "system");
-
-    // Exámenes
-    if (folder === "Exámenes") {
-      sendMessage(`Generando examen de ${subject} con 20 preguntas...`, "system");
-      setTimeout(() => {
-        const examMsg = {
-          role: "assistant",
-          type: "exam",
-          title: `Examen de ${subject}`,
-          subject: subject,
-          notes: "Examen generado automáticamente.",
-          questions: Array.from({ length: 20 }).map((_, i) => ({
-            q: `Pregunta ${i + 1}: Explica lo relacionado con ${subject}.`,
-            a: "Respuesta esperada...",
-          })),
-        };
-        sendMessage("Tu examen está listo. Generando PDF...", "assistant");
-        processAssistantMessage(examMsg);
-      }, 1200);
-    }
-
-    // Deberes
-    if (folder === "Deberes") {
-      setTimeout(() => sendMessage(`Actividades de ${subject} listas para Deberes: [Lista generada]`, "assistant"), 1200);
-    }
-
-    // Clases
-    if (folder === "Clases") {
-      setTimeout(() => sendMessage(`Pizarra lista: [Ideas y actividades]`, "assistant"), 1200);
-    }
-
-    // Proyecto escolar
-    if (folder === "Proyecto escolar") {
-      setTimeout(() => sendMessage(`[Proyecto generado con tareas de ${subject}]`, "assistant"), 1200);
-    }
-  };
-
-  // ------------------ SCROLL AUTOMÁTICO ------------------
+  // ------------------ SCROLL ------------------
   useEffect(() => {
+    logDebug("[ChatAdvanced] scroll ejecutado");
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   // ------------------ RENDER ------------------
   return (
     <div className="w-full h-screen flex bg-gradient-to-br from-[#f4dbe7] to-[#e5d4f6] p-4">
-      {/* Sidebar */}
       <Sidebar
         age={age}
         subject={subject}
@@ -198,13 +153,11 @@ export default function ChatAdvanced() {
             prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]
           )
         }
-        onSelectFolder={handleFolder}
-        onSelectTemplate={handleTemplate}
+        onSelectFolder={(f) => logDebug(`[Sidebar] carpeta: ${f}`)}
+        onSelectTemplate={(t) => logDebug(`[Sidebar] template: ${t}`)}
       />
 
-      {/* Chat */}
-      <main className="flex-1 h-full ml-4 rounded-3xl bg-white/30 backdrop-blur-2xl border border-white/40 shadow-2xl p-6 flex flex-col">
-        {/* Topbar */}
+      <main className="flex-1 ml-4 rounded-3xl bg-white/30 p-6 flex flex-col">
         <Topbar
           user={authUser || user}
           role={role}
@@ -213,28 +166,28 @@ export default function ChatAdvanced() {
           onUpgradeClick={handleUpgrade}
         />
 
-        {/* Contador Freemium */}
-        {!user && (
-          <div className="text-xs text-right text-[#7b879c] mb-1">
-            Mensajes restantes: {MAX_MESSAGES_FREE - messageCount}
-          </div>
-        )}
-
-        {/* Mensajes */}
-        <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scroll">
+        <div className="flex-1 overflow-y-auto">
           {messages.map((m, i) => (
             <ChatBubble key={i} {...m} />
           ))}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
-        <div className="mt-4">
-          <ChatInput input={input} setInput={setInput} onSend={handleSend} />
-        </div>
+        <ChatInput input={input} setInput={setInput} onSend={handleSend} />
+
+        {/* PANEL DEBUG */}
+        {import.meta.env.DEV && (
+          <div className="mt-2 p-2 text-xs bg-black text-green-400 rounded max-h-40 overflow-y-auto">
+            <strong>DEBUG ChatAdvanced</strong>
+            <ul>
+              {debugLogs.map((l, i) => (
+                <li key={i}>{l}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </main>
 
-      {/* Modal de suscripción */}
       {showSubscription && (
         <Modal onClose={() => setShowSubscription(false)}>
           <Subscription onClose={() => setShowSubscription(false)} />
