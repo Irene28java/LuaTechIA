@@ -1,45 +1,47 @@
-# -------------------- Etapa 1: Build --------------------
-FROM node:20 AS build
-
-# Crear directorio de trabajo
+# -------------------- Base --------------------
+FROM node:20-alpine AS base
 WORKDIR /app
+ENV NODE_ENV=production
 
-# Copiar package.json y package-lock.json para backend
-COPY package*.json ./
+# -------------------- Build --------------------
+FROM base AS build
 
-# Instalar dependencias del backend
-RUN npm install --only=production
+# Instalar dependencias del sistema
+RUN apk add --no-cache python3 make g++ 
 
-# Copiar todo el backend
-COPY backend ./backend
+# Copiar package.json del root y del frontend
+COPY package*.json ./       # Esto es para backend
+COPY frontend/package*.json ./frontend/  # Esto es para frontend
 
-# Copiar frontend y sus package.json
-COPY frontend/package*.json frontend/
+# Instalar dependencias root y frontend
+RUN npm ci --only=production
+RUN cd frontend && npm install  # Instalar dependencias frontend
 
-# Instalar dependencias del frontend
-RUN cd frontend && npm install
+# Copiar todo el código
+COPY . . 
 
-# Construir el frontend
+# Build del frontend
 RUN cd frontend && npm run build
 
-# -------------------- Etapa 2: Producción --------------------
-FROM node:20-slim
-
+# -------------------- Final --------------------
+FROM node:20-alpine
 WORKDIR /app
-
-# Copiar backend y node_modules desde la etapa de build
-COPY --from=build /app/backend ./backend
-COPY --from=build /app/node_modules ./node_modules
-
-# Copiar frontend construido
-COPY --from=build /app/frontend/dist ./frontend/dist
-
-# Variables de entorno
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=3001  # Cambiado el puerto a 3001
 
-# Exponer puerto
-EXPOSE 3000
+# Copiar backend y node_modules
+COPY --from=build /app/backend /app/backend
+COPY --from=build /app/node_modules /app/node_modules
 
-# Ejecutar backend que sirve frontend
+# Copiar frontend build
+COPY --from=build /app/frontend/dist /app/frontend/dist
+
+# Servir frontend con express (sin Nginx)
+COPY backend/index.js ./backend/index.js
+COPY backend/lib ./backend/lib
+COPY backend/routes ./backend/routes
+COPY backend/middlewares ./backend/middlewares
+
+EXPOSE 3001 
+
 CMD ["node", "backend/index.js"]
