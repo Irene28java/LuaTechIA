@@ -1,20 +1,16 @@
-# Usamos la imagen base de Node.js
 FROM node:20-alpine
 
-# Establecer directorio de trabajo
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Copiar package.json y package-lock.json
+# Copiamos dependencias
 COPY package*.json ./
-
-# Instalar dependencias
 RUN npm install
 
-# Copiar el resto del código
+# Copiamos el resto del backend
 COPY . .
 
-# Exponer el puerto 3000
-EXPOSE 3000
+# El backend escucha en 3001
+EXPOSE 3001
 
-# Comando para iniciar el servidor
-CMD ["node", "index.js"]
+# Arranque estándar
+CMD ["npm", "start"]

@@ -1,33 +1,35 @@
-version: "3.8"
+version: "3.9"
+
 services:
-  # Servicio de Backend (Node.js)
   backend:
-    build: ./backend          # Directorio donde está tu backend
+    build: ./backend
     ports:
-      - "3000:3000"            # Exponer el puerto 3000 en el host
+      - "3001:3001"
     environment:
-      - PORT=3000
-      - JWT_SECRET=${JWT_SECRET}  # Asegúrate de tener estas variables en un archivo .env
+      - PORT=3001
+      - JWT_SECRET=${JWT_SECRET}
       - STRIPE_SECRET=${STRIPE_SECRET}
-      - FRONTEND_URL=http://localhost:5173  # URL del frontend
       - HF_API_KEY=${HF_API_KEY}
-      - OLLAMA_URL=http://ollama:11434  # Accediendo al servicio de Ollama
+      - OLLAMA_URL=http://ollama:11434
+      - FRONTEND_URL=http://frontend
+      - NODE_ENV=production
     depends_on:
-      - ollama   # El backend espera a que Ollama esté listo
+      - ollama
 
-  # Servicio de Frontend (probablemente una app de React)
   frontend:
-    build: ./frontend         # Directorio donde está tu frontend
+    build: ./frontend
     ports:
-      - "5173:80"              # Exponer el puerto 5173 en el host (o el que uses)
+      - "5173:80"
     depends_on:
-      - backend                # El frontend depende de que el backend esté funcionando
+      - backend
 
-  # Servicio de Ollama (en contenedor)
   ollama:
-    image: ollama/ollama:latest  # Usa la imagen oficial de Ollama desde Docker Hub
-    restart: unless-stopped     # Reinicia automáticamente si el contenedor se detiene
+    image: ollama/ollama:latest
+    restart: unless-stopped
     ports:
-      - "11434:11434"           # El puerto 11434 será accesible desde el host (para la conexión API)
-    environment:
-      - OLLAMA_API_KEY=${OLLAMA_API_KEY}  # Asegúrate de tener tu API Key aquí
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+
+volumes:
+  ollama:
