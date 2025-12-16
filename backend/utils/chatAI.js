@@ -1,8 +1,6 @@
 import { hfGenerate } from "../services/huggingface.js";
 import { callGroq } from "../services/groq.js";
-import { Ollama } from "ollama";
-
-const ollamaClient = new Ollama({ apiKey: process.env.OLLAMA_API_KEY });
+import { ollamaStream } from "../services/ollamaStream.js";
 
 export async function tryModelsSequentially({ message, role, age, subject, specialNeeds = [], onChunk, onEnd }) {
   const prompt = `
@@ -16,7 +14,7 @@ Sé empática, cálida y humana, responde en español.
     {
       name: "Ollama Local",
       fn: async () => {
-        const stream = await ollamaClient.stream({ model: "llama3.1", prompt });
+        const stream = await ollamaStream(prompt);  // <-- corregido
         for await (const event of stream) {
           if (event.type === "response") onChunk(event.text);
         }
@@ -28,7 +26,10 @@ Sé empática, cálida y humana, responde en español.
 
   for (const model of models) {
     try {
-      await Promise.race([model.fn(), new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 25000))]);
+      await Promise.race([
+        model.fn(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 25000))
+      ]);
       onEnd();
       return;
     } catch (err) {

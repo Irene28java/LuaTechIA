@@ -1,5 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 
 // Routers
@@ -27,7 +29,7 @@ const app = express();
 app.use(express.json());
 
 // -------------------- Health backend --------------------
-app.get("/", (req, res) => {
+app.get("/health", (req, res) => {
   res.send("LuaTechIA Backend OK");
 });
 
@@ -49,10 +51,23 @@ app.use("/ai", (req, res, next) => {
 
 app.use("/activities", authenticate, activitiesRouter);
 
+// -------------------- Servir frontend --------------------
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
+
 // -------------------- Error handler --------------------
 app.use((err, req, res, next) => {
   console.error("🔥 Backend Error:", err);
   res.status(500).json({ error: "Error interno del servidor" });
 });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 export default app;
