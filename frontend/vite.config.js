@@ -4,40 +4,59 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   build: {
-    // Aumenta el límite de chunks para que no salgan advertencias amarillas
-    chunkSizeWarningLimit: 2000, // en KB
+    // Evita warnings por chunks grandes
+    chunkSizeWarningLimit: 2000,
+
     rollupOptions: {
       output: {
-        // Separar librerías grandes en chunks independientes
         manualChunks: {
           react: ['react', 'react-dom'],
-          libs: ['framer-motion', 'socket.io-client', 'zustand', '@stripe/stripe-js', '@stripe/react-stripe-js']
+          libs: [
+            'framer-motion',
+            'socket.io-client',
+            'zustand',
+            '@stripe/stripe-js',
+            '@stripe/react-stripe-js'
+          ]
         }
       }
     }
   },
+
   plugins: [
     react(),
+
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'icons/icon-180.png'],
+      includeAssets: ['favicon.ico'],
+
       manifest: {
         name: 'LúaTechIA',
         short_name: 'LúaTechIA',
         description: 'Asistente educativa inteligente para estudiantes y profesores',
-        theme_color: '#344759ff',
+        theme_color: '#344759',
         background_color: '#ffffff',
         display: 'standalone',
+
         icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-180.png', sizes: '180x180', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          {
+            src: '/icons/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any maskable'
+          },
+          {
+            src: '/icons/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
         ]
       }
     })
   ],
+
   resolve: {
-    // Asegura que los imports respeten mayúsculas
     preserveSymlinks: true
   }
 });
