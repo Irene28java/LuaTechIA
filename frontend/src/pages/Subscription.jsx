@@ -12,31 +12,36 @@ export default function Subscription() {
       title: "Plan Gratuito",
       price: "0€",
       features: [
-        "Límite de mensajes diarios",
-        "Acceso básico a PDFs y materiales",
-        "Ideal para probar LúaTechIA",
+        "Hasta 15 mensajes diarios",
+        "Respuestas más pausadas",
+        "Historial de conversación limitado",
+        "Ideal para conocer cómo Lúa acompaña y explica",
       ],
       color: "border-[#19e0ff]/30",
     },
     {
       id: "monthly",
-      title: "Plan Mensual",
-      price: "15,99€ / mes",
+      title: "Plan Familiar y Educativo",
+      price: "16,99€ / mes",
       features: [
         "Mensajes ilimitados",
-        "Acceso completo a PDFs, materiales y exámenes",
-        "Actualizaciones constantes",
+        "Acompañamiento educativo diario en casa o en clase",
+        "Explicaciones adaptadas a la edad y nivel",
+        "Creación de actividades, ejercicios y exámenes",
+        "Menos discusiones con los deberes, más autonomía",
       ],
       color: "border-[#1f7bff]/40",
     },
     {
       id: "annual",
-      title: "Plan Anual",
+      title: "Plan Familiar y Educativo Anual",
       price: "179,99€ / año",
       features: [
-        "Todo del plan mensual",
+        "Todo lo incluido en el plan mensual",
+        "Uso continuo para familias y profesores",
+        "Ahorro de tiempo en casa y en el aula",
         "Soporte prioritario",
-        "Siempre actualizado",
+        "Un acompañamiento estable durante todo el curso",
       ],
       color: "border-[#2341ff]/40",
     },
@@ -45,22 +50,24 @@ export default function Subscription() {
   return (
     <div className="min-h-screen w-full bg-[#344759ff] text-white px-6 py-12 flex flex-col items-center relative overflow-hidden">
 
-      {/* Fondos con blur como HomeIntro */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-500/10 blur-[160px]" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-600/10 blur-[160px]" />
 
-      {/* Título */}
-      <h1 className="text-5xl font-extrabold mb-8 text-center bg-gradient-to-r 
-        from-[#19e0ff] via-[#1f7bff] to-[#2341ff] bg-clip-text text-transparent
-      ">
+      <h1 className="text-5xl font-extrabold mb-6 text-center bg-gradient-to-r 
+        from-[#19e0ff] via-[#1f7bff] to-[#2341ff] bg-clip-text text-transparent">
         Planes de LúaTechIA
       </h1>
 
-      <p className="max-w-xl text-center mb-12 text-gray-200">
-        Escoge tu plan y continúa explorando el universo de aprendizaje de LúaTechIA.
+      <p className="max-w-xl text-center mb-4 text-gray-200">
+        Elige el tipo de acompañamiento educativo que mejor encaje con tu familia o tu aula.
       </p>
 
-      {/* TARJETAS VERTICALES MODERNAS */}
+      {/* FRASE CLAVE ANTES DE PAGAR */}
+      <p className="max-w-xl text-center mb-12 text-gray-300 italic">
+        Estás a punto de ofrecer a tu hijo o a tus alumnos un apoyo educativo constante,
+        sin presión, sin juicios y a su ritmo.
+      </p>
+
       <div className="flex flex-col gap-10 w-full max-w-xl">
         {plans.map((plan) => (
           <div
@@ -79,17 +86,13 @@ export default function Subscription() {
 
             <ul className="mb-6 space-y-2 text-gray-200">
               {plan.features.map((feature, i) => (
-                <li
-                  key={i}
-                  className="flex items-center gap-2 text-gray-100"
-                >
+                <li key={i} className="flex items-center gap-2 text-gray-100">
                   <span className="w-2 h-2 bg-[#19e0ff] rounded-full"></span>
                   {feature}
                 </li>
               ))}
             </ul>
 
-            {/* BOTÓN */}
             <button
               onClick={() =>
                 user?.email
@@ -107,7 +110,6 @@ export default function Subscription() {
         ))}
       </div>
 
-      {/* MODAL */}
       {selectedPlan && user?.email && (
         <PaymentModal
           planId={selectedPlan}

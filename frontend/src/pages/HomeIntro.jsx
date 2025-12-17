@@ -17,7 +17,7 @@ export default function HomeIntro() {
 
       {/* Título */}
       <motion.h1
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1 }}
         className="text-6xl md:text-7xl font-extrabold bg-gradient-to-r from-[#19e0ff] via-[#1f7bff] to-[#2341ff] bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(0,150,255,0.3)]"
@@ -25,32 +25,35 @@ export default function HomeIntro() {
         LúaTechIA
       </motion.h1>
 
-      {/* Subtítulo */}
+      {/* Eslogan con efecto “pop” */}
       <motion.p
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, duration: 1 }}
-        className="text-gray-300 text-xl md:text-2xl mt-6 max-w-xl"
-      >
-        Un mundo de aprendizaje emocional, visual y personalizado.
-      </motion.p>
-
-      {/* Botón Continuar */}
-      <motion.button
-        onClick={goToChat}
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.8, duration: 0.6 }}
+        transition={{ delay: 0.4, duration: 0.8, type: "spring", stiffness: 100 }}
+        className="text-gray-300 text-xl md:text-2xl mt-6 max-w-xl leading-relaxed"
+      >
+        <span className="font-semibold text-white">
+          Convierte cada duda en confianza
+        </span>{" "}
+        y cada error en aprendizaje.
+      </motion.p>
+
+      {/* Botón Continuar con entrada animada */}
+      <motion.button
+        onClick={goToChat}
+        initial={{ opacity: 0, y: 20, scale: 0.8 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ delay: 0.9, duration: 0.6, type: "spring", stiffness: 80 }}
         className="absolute bottom-24 px-8 py-3 rounded-full text-lg font-semibold bg-gradient-to-r from-[#1f7bff] to-[#19e0ff] text-white shadow-lg hover:shadow-[0_0_25px_rgba(30,150,255,0.6)] hover:scale-105 transition-all duration-300"
       >
         Continuar
       </motion.button>
 
-      {/* Flecha animada */}
+      {/* Flecha animada con entrada coordinada */}
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 1 }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.2, duration: 0.6 }}
         className="absolute bottom-10 flex flex-col items-center select-none"
       >
         <motion.span

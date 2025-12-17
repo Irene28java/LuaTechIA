@@ -1,44 +1,33 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { VitePWA } from 'vite-plugin-pwa';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  build: {
-    // Evita warnings por chunks grandes
-    chunkSizeWarningLimit: 2000,
-
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          react: ['react', 'react-dom'],
-          libs: [
-            'framer-motion',
-            'socket.io-client',
-            'zustand',
-            '@stripe/stripe-js',
-            '@stripe/react-stripe-js'
-          ]
-        }
-      }
-    }
-  },
-
   plugins: [
     react(),
 
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico'],
+      includeAssets: ['favicon.ico', 'icons/icon-180.png'],
 
       manifest: {
         name: 'LúaTechIA',
         short_name: 'LúaTechIA',
         description: 'Asistente educativa inteligente para estudiantes y profesores',
-        theme_color: '#344759',
-        background_color: '#ffffff',
+        start_url: '/',
+        scope: '/',
         display: 'standalone',
+        background_color: '#ffffff',
+        theme_color: '#8B5CF6',
+        lang: 'es',
 
         icons: [
+          { src: '/icons/icon-72.png',  sizes: '72x72',  type: 'image/png' },
+          { src: '/icons/icon-96.png',  sizes: '96x96',  type: 'image/png' },
+          { src: '/icons/icon-128.png', sizes: '128x128', type: 'image/png' },
+          { src: '/icons/icon-144.png', sizes: '144x144', type: 'image/png' },
+          { src: '/icons/icon-152.png', sizes: '152x152', type: 'image/png' },
+          { src: '/icons/icon-180.png', sizes: '180x180', type: 'image/png' },
           {
             src: '/icons/icon-192.png',
             sizes: '192x192',
@@ -54,9 +43,5 @@ export default defineConfig({
         ]
       }
     })
-  ],
-
-  resolve: {
-    preserveSymlinks: true
-  }
-});
+  ]
+})

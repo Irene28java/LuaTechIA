@@ -12,12 +12,12 @@ import { generateEvaluationPDF } from "../api/pdf.js";
 
 // ------------------ CONSTANTES ------------------
 const MAX_MESSAGES_FREE = 15;
+const WARNING_THRESHOLDS = [3, 2, 1];
+const MAX_VISIBLE_MESSAGES_FREE = 10;
 const LOCAL_STORAGE_KEY = "chat_free_message_count";
 
 // ------------------ COMPONENTE ------------------
 export default function ChatAdvanced() {
-  console.log("[ChatAdvanced] componente cargado");
-
   const { user: authUser } = useAuth();
 
   const [user, setUser] = useState(authUser || null);
@@ -25,18 +25,7 @@ export default function ChatAdvanced() {
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-
-  // ------------------ DEBUG ------------------
-  const [debugLogs, setDebugLogs] = useState([]);
-
-  const logDebug = (msg) => {
-    console.log(msg);
-    setDebugLogs((prev) => [...prev, msg]);
-  };
-
-  logDebug("[ChatAdvanced] render ejecutado");
-  logDebug(`[ChatAdvanced] Sidebar import: ${typeof Sidebar}`);
-  logDebug(`[ChatAdvanced] Topbar import: ${typeof Topbar}`);
+  const [isPreparing, setIsPreparing] = useState(false);
 
   // ------------------ MENSAJES FREE ------------------
   const [messageCount, setMessageCount] = useState(() => {
@@ -51,20 +40,71 @@ export default function ChatAdvanced() {
 
   // ------------------ MODAL ------------------
   const [showSubscription, setShowSubscription] = useState(false);
-  const handleUpgrade = () => setShowSubscription(true);
 
   const messagesEndRef = useRef(null);
 
   // ------------------ TIEMPO ------------------
   const getTime = () => {
     const d = new Date();
-    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    return `${String(d.getHours()).padStart(2, "0")}:${String(
+      d.getMinutes()
+    ).padStart(2, "0")}`;
   };
+
+  // ------------------ MENSAJES HUMANOS ------------------
+  const getWelcomeMessage = () => {
+    if (role === "niño") {
+      return "¡Hola! 🤍 Soy Lúa.\nPuedes preguntarme sin miedo. Estoy aquí para ayudarte paso a paso, a tu ritmo.";
+    }
+
+    if (role === "profe") {
+      return "Hola, soy Lúa.\nPuedo ayudarte a crear actividades, exámenes y explicaciones adaptadas al nivel de tus alumnos, ahorrándote tiempo sin perder calidad educativa.";
+    }
+
+    return "Hola, soy Lúa.\nUn apoyo educativo tranquilo para familias. Ayudo a explicar, reforzar y acompañar sin presión ni discusiones.";
+  };
+
+  const getPreparingMessage = () => {
+    if (role === "niño") {
+      return "Lúa se está preparando para ayudarte 🤍\nEn unos segundos continuamos, tómate tu tiempo.";
+    }
+
+    if (role === "profe") {
+      return "Preparando una explicación clara y una propuesta educativa adaptable…";
+    }
+
+    return "Preparando una explicación clara y tranquila…";
+  };
+
+  const getRemainingMessageNotice = (remaining) => {
+    if (remaining === 3)
+      return "🤍 Seguimos un poquito más.\nTe quedan 3 mensajes para hablar con Lúa.";
+    if (remaining === 2)
+      return "🤍 Nos queda un momento más juntos.\nTe quedan 2 mensajes.";
+    if (remaining === 1)
+      return "🤍 Este es el último mensaje de la versión gratuita.\nSi quieres, luego podemos seguir sin límites.";
+    return null;
+  };
+
+  // ------------------ BIENVENIDA AUTOMÁTICA ------------------
+  useEffect(() => {
+    if (messages.length === 0) {
+      setTimeout(() => {
+        setMessages([
+          {
+            role: "assistant",
+            text: getWelcomeMessage(),
+            time: getTime(),
+          },
+        ]);
+      }, 600);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role]);
 
   // ------------------ ENVÍO ------------------
   const sendMessage = (text, roleMessage = "user") => {
     if (!text.trim()) return;
-    logDebug(`[ChatAdvanced] sendMessage → ${roleMessage}: ${text}`);
     setMessages((prev) => [...prev, { role: roleMessage, text, time: getTime() }]);
   };
 
@@ -72,8 +112,8 @@ export default function ChatAdvanced() {
     const text = input.trim();
     if (!text) return;
 
+    // BLOQUEO FINAL
     if (!user && messageCount >= MAX_MESSAGES_FREE) {
-      logDebug("[ChatAdvanced] límite FREE alcanzado → modal");
       setShowSubscription(true);
       return;
     }
@@ -84,60 +124,59 @@ export default function ChatAdvanced() {
       const newCount = messageCount + 1;
       setMessageCount(newCount);
       localStorage.setItem(LOCAL_STORAGE_KEY, newCount.toString());
-    }
 
-    if (detectExamRequest(text)) {
-      logDebug("[ChatAdvanced] solicitud de examen detectada");
-      autoGenerateExam(text);
+      const remaining = MAX_MESSAGES_FREE - newCount;
+      const notice = getRemainingMessageNotice(remaining);
+
+      if (notice) {
+        setTimeout(() => {
+          sendMessage(notice, "assistant");
+        }, 600);
+      }
     }
 
     setInput("");
+    setIsPreparing(true);
+
+    // RESPUESTA DE LÚA (simulada / backend real aquí)
+    setTimeout(() => {
+      setIsPreparing(false);
+      sendMessage(
+        "Vamos a verlo juntos 😊\nExplícamelo un poco más o dime dónde te has quedado.",
+        "assistant"
+      );
+    }, 1200);
   };
 
-  // ------------------ EXÁMENES ------------------
+  // ------------------ EXÁMENES (SE MANTIENE) ------------------
   const detectExamRequest = (text) => {
     const triggers = ["examen", "prueba", "evaluación", "test"];
     return triggers.some((t) => text.toLowerCase().includes(t));
   };
 
-  const autoGenerateExam = (userText) => {
-    logDebug("[ChatAdvanced] autoGenerateExam ejecutado");
-
-    const examMsg = {
-      role: "assistant",
-      type: "exam",
+  const autoGenerateExam = async () => {
+    await generateEvaluationPDF({
       title: `Examen de ${subject}`,
+      student: user?.name || "Alumno",
+      age,
       subject,
-      questions: Array.from({ length: 20 }).map((_, i) => ({
+      evaluationData: Array.from({ length: 20 }).map((_, i) => ({
         q: `Pregunta ${i + 1}`,
         a: "Respuesta esperada",
       })),
-    };
-
-    setTimeout(() => {
-      processAssistantMessage(examMsg);
-    }, 800);
-  };
-
-  const processAssistantMessage = async (assistantMsg) => {
-    logDebug("[ChatAdvanced] processAssistantMessage");
-
-    if (assistantMsg.type === "exam") {
-      await generateEvaluationPDF({
-        title: assistantMsg.title,
-        student: user?.name || "Alumno",
-        age,
-        subject,
-        evaluationData: assistantMsg.questions,
-      });
-    }
+    });
   };
 
   // ------------------ SCROLL ------------------
   useEffect(() => {
-    logDebug("[ChatAdvanced] scroll ejecutado");
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isPreparing]);
+
+  // ------------------ HISTORIAL LIMITADO FREE ------------------
+  const visibleMessages =
+    !user && messages.length > MAX_VISIBLE_MESSAGES_FREE
+      ? messages.slice(-MAX_VISIBLE_MESSAGES_FREE)
+      : messages;
 
   // ------------------ RENDER ------------------
   return (
@@ -153,8 +192,8 @@ export default function ChatAdvanced() {
             prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]
           )
         }
-        onSelectFolder={(f) => logDebug(`[Sidebar] carpeta: ${f}`)}
-        onSelectTemplate={(t) => logDebug(`[Sidebar] template: ${t}`)}
+        onSelectFolder={() => {}}
+        onSelectTemplate={() => {}}
       />
 
       <main className="flex-1 ml-4 rounded-3xl bg-white/30 p-6 flex flex-col">
@@ -163,29 +202,32 @@ export default function ChatAdvanced() {
           role={role}
           onChangeRole={setRole}
           onLoginClick={() => setUser({ name: "Usuario", age })}
-          onUpgradeClick={handleUpgrade}
+          onUpgradeClick={() => setShowSubscription(true)}
         />
 
         <div className="flex-1 overflow-y-auto">
-          {messages.map((m, i) => (
+          {visibleMessages.map((m, i) => (
             <ChatBubble key={i} {...m} />
           ))}
+
+          {!user && messages.length > MAX_VISIBLE_MESSAGES_FREE && (
+            <div className="text-center text-sm text-gray-500 my-3">
+              El historial completo está disponible con un plan de acompañamiento 🤍
+            </div>
+          )}
+
+          {isPreparing && (
+            <ChatBubble
+              role="assistant"
+              text={getPreparingMessage()}
+              time={getTime()}
+            />
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
         <ChatInput input={input} setInput={setInput} onSend={handleSend} />
-
-        {/* PANEL DEBUG */}
-        {import.meta.env.DEV && (
-          <div className="mt-2 p-2 text-xs bg-black text-green-400 rounded max-h-40 overflow-y-auto">
-            <strong>DEBUG ChatAdvanced</strong>
-            <ul>
-              {debugLogs.map((l, i) => (
-                <li key={i}>{l}</li>
-              ))}
-            </ul>
-          </div>
-        )}
       </main>
 
       {showSubscription && (
