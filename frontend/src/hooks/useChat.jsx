@@ -1,6 +1,6 @@
 // hooks/useChat.js
 import { useState, useRef, useEffect } from "react";
-import { EventSourcePolyfill } from "event-source-polyfill"; // npm install event-source-polyfill
+import { EventSourcePolyfill } from "event-source-polyfill";
 
 const allowedSubjects = [
   "naturales","matematicas","lengua","sociales","ingles",
@@ -46,6 +46,20 @@ export function useChat({ onError }) {
   const [loading, setLoading] = useState(false);
   const eventSourceRef = useRef(null);
 
+  // Agregar o actualizar último mensaje de assistant en tiempo real
+  const addOrUpdateAssistantMessage = (text) => {
+    setMessages(prev => {
+      const newMessages = [...prev];
+      const lastMsg = newMessages[newMessages.length - 1];
+      if (lastMsg?.role === "assistant") {
+        lastMsg.text = text;
+      } else {
+        newMessages.push({ role: "assistant", text, time: new Date().toLocaleTimeString() });
+      }
+      return newMessages;
+    });
+  };
+
   const addMessage = (msg) => setMessages(prev => [...prev, msg]);
 
   const saveMessage = async (msg) => {
@@ -81,49 +95,47 @@ export function useChat({ onError }) {
     }
 
     // 2️⃣ Mensaje de usuario
-    const userMsg = { role: "user", text: message, time: new Date().toLocaleTimeString() };
-    addMessage(userMsg);
-
+    addMessage({ role: "user", text: message, time: new Date().toLocaleTimeString() });
     setLoading(true);
 
-    // 3️⃣ SSE a backend local (Ollama)
+    // 3️⃣ SSE a backend
     if (eventSourceRef.current) eventSourceRef.current.close();
-    const evtSource = new EventSourcePolyfill("/api/chat/stream", {
+    const evtSource = new EventSourcePolyfill(`${import.meta.env.VITE_API_URL}/chat/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message, role, age, subject: mat, specialNeeds })
     });
     eventSourceRef.current = evtSource;
 
-    let assistantMessage = { role: "assistant", text: "", time: new Date().toLocaleTimeString() };
-    addMessage(assistantMessage);
+    let assistantText = "";
 
     evtSource.onmessage = async (e) => {
       if (e.data === "[DONE]") {
-        saveMessage(assistantMessage);
+        addOrUpdateAssistantMessage(assistantText);
+        saveMessage({ role: "assistant", text: assistantText });
         setLoading(false);
         evtSource.close();
         return;
       }
 
-      // Error desde pipeline
       if (e.data.startsWith("Lo siento")) {
-        assistantMessage.text = e.data;
-        addMessage({ ...assistantMessage });
+        assistantText = e.data;
+        addOrUpdateAssistantMessage(assistantText);
         setLoading(false);
         evtSource.close();
         if (onError) onError(new Error(e.data));
-        // Fallback a HF/Groq
+
+        // Fallback
         try {
-          const res = await fetch("/api/chat/fallback", {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/chat/fallback`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message, role, age, subject: mat, specialNeeds })
           });
           const data = await res.json();
-          const fallbackMsg = { role: "assistant", text: data.response, time: new Date().toLocaleTimeString() };
-          addMessage(fallbackMsg);
-          saveMessage(fallbackMsg);
+          assistantText = data.response;
+          addOrUpdateAssistantMessage(assistantText);
+          saveMessage({ role: "assistant", text: assistantText });
         } catch (err2) {
           console.error("Fallback failed:", err2);
           if (onError) onError(err2);
@@ -131,9 +143,9 @@ export function useChat({ onError }) {
         return;
       }
 
-      // Acumula datos en tiempo real
-      assistantMessage.text += e.data;
-      addMessage({ ...assistantMessage });
+      // 4️⃣ Acumula chunks en tiempo real
+      assistantText += e.data;
+      addOrUpdateAssistantMessage(assistantText);
     };
 
     evtSource.onerror = async (err) => {
@@ -142,17 +154,17 @@ export function useChat({ onError }) {
       setLoading(false);
       if (onError) onError(err);
 
-      // Fallback a HuggingFace / Groq
+      // Fallback
       try {
-        const res = await fetch("/api/chat/fallback", {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/chat/fallback`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message, role, age, subject: mat, specialNeeds })
         });
         const data = await res.json();
-        const fallbackMsg = { role: "assistant", text: data.response, time: new Date().toLocaleTimeString() };
-        addMessage(fallbackMsg);
-        saveMessage(fallbackMsg);
+        assistantText = data.response;
+        addOrUpdateAssistantMessage(assistantText);
+        saveMessage({ role: "assistant", text: assistantText });
       } catch (err2) {
         console.error("Fallback failed:", err2);
         if (onError) onError(err2);
@@ -161,9 +173,7 @@ export function useChat({ onError }) {
   };
 
   useEffect(() => {
-    return () => {
-      if (eventSourceRef.current) eventSourceRef.current.close();
-    };
+    return () => { if (eventSourceRef.current) eventSourceRef.current.close(); };
   }, []);
 
   return { messages, sendMessage, loading };
