@@ -1,3 +1,4 @@
+// components/ChatUI.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { useChat } from "../hooks/useChat";
 
@@ -8,18 +9,18 @@ export default function ChatUI() {
 
   const [input, setInput] = useState("");
   const bottomRef = useRef(null);
+  const inputRef = useRef(null);
 
   const handleSend = () => {
     if (!input.trim()) return;
     sendMessage({ message: input });
     setInput("");
+    inputRef.current?.focus();
   };
 
   // Scroll automático al último mensaje
   useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   return (
@@ -32,12 +33,8 @@ export default function ChatUI() {
             key={i} 
             style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", marginBottom: "0.5rem" }}
           >
-            <div style={{
-              display: "flex",
-              alignItems: "flex-end",
-              maxWidth: "75%",
-              wordBreak: "break-word"
-            }}>
+            <div style={{ display: "flex", alignItems: "flex-end", maxWidth: "75%", wordBreak: "break-word" }}>
+              
               {/* Avatar */}
               {m.role === "assistant" && (
                 <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#e0e0e0", display: "flex", alignItems: "center", justifyContent: "center", marginRight: "8px" }}>
@@ -50,7 +47,7 @@ export default function ChatUI() {
                 </div>
               )}
 
-              {/* Burbujas de mensaje */}
+              {/* Burbuja de mensaje */}
               <div style={{
                 background: m.role === "user" ? "#4f93ff" : "#e0e0e0",
                 color: m.role === "user" ? "#fff" : "#000",
@@ -77,31 +74,18 @@ export default function ChatUI() {
       {/* Input */}
       <div style={{ display: "flex", marginTop: "0.5rem" }}>
         <input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="Escribe tu mensaje..."
-          style={{
-            flex: 1,
-            padding: "0.5rem 1rem",
-            borderRadius: "20px",
-            border: "1px solid #ccc",
-            outline: "none"
-          }}
+          style={{ flex: 1, padding: "0.5rem 1rem", borderRadius: "20px", border: "1px solid #ccc", outline: "none" }}
         />
         <button
           onClick={handleSend}
           disabled={loading}
-          style={{
-            marginLeft: "0.5rem",
-            padding: "0.5rem 1rem",
-            borderRadius: "20px",
-            background: "#4f93ff",
-            color: "#fff",
-            border: "none",
-            cursor: "pointer"
-          }}
+          style={{ marginLeft: "0.5rem", padding: "0.5rem 1rem", borderRadius: "20px", background: "#4f93ff", color: "#fff", border: "none", cursor: "pointer" }}
         >
           Enviar
         </button>
