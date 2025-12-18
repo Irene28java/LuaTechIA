@@ -1,0 +1,37 @@
+require('dotenv').config();
+
+module.exports = {
+  apps: [
+    {
+      name: 'lua-backend',
+      script: './index.js',        // apunta a tu index.js
+      env: {
+        NODE_ENV: 'production',
+        PORT: process.env.PORT,
+        SUPABASE_KEY: process.env.SUPABASE_KEY,
+        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+        SUPABASE_URL: process.env.SUPABASE_URL,
+        FRONTEND_URL: process.env.FRONTEND_URL,
+        STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+        STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+        NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+        REDIRECT_URI: process.env.REDIRECT_URI,
+        OLLAMA_MODEL: process.env.OLLAMA_MODEL,
+        OLLAMA_URL: process.env.OLLAMA_URL,
+        VITE_OLLAMA_URL: process.env.VITE_OLLAMA_URL,
+        CLIENT_SECRET: process.env.CLIENT_SECRET,
+        HF_API_KEY: process.env.HF_API_KEY,
+        HUGGINGFACE_MODEL: process.env.HUGGINGFACE_MODEL,
+        AI_MODEL: process.env.AI_MODEL,
+        AI_BACKEND: process.env.AI_BACKEND,
+        GROQ_API_KEY: process.env.GROQ_API_KEY,
+        GROQ_MODEL: process.env.GROQ_MODEL,
+        JWT_SECRET: process.env.JWT_SECRET,
+        JWT_KEY: process.env.JWT_KEY
+      },
+      watch: false
+    },
+  ],
+};
