@@ -8,25 +8,15 @@ import { safeMode } from "./safeMode.js";
 
 export async function chatPipelineSSE(req, res, next) {
   try {
-    // 1️⃣ Inject style
-    injectStyle(req, res, () => {});
+    // Encadenar todos los middlewares
+    await injectStyle(req, res);
+    await jailbreakBlocker(req, res);
+    await safetyFilter(req, res);
+    await ageLimiter(req, res);
+    await moderationAI(req, res);
+    await safeMode(req, res);
 
-    // 2️⃣ Evitar jailbreak
-    jailbreakBlocker(req, res, () => {});
-
-    // 3️⃣ Filtrado de malas palabras y grooming
-    safetyFilter(req, res, () => {});
-
-    // 4️⃣ Limitar según edad
-    ageLimiter(req, res, () => {});
-
-    // 5️⃣ Moderación AI
-    await moderationAI(req, res, () => {});
-
-    // 6️⃣ Safe mode según rol
-    safeMode(req, res, () => {});
-
-    // Si todo pasa
+    // Si todo pasa, continuar al siguiente middleware o endpoint
     next();
 
   } catch (err) {
@@ -40,6 +30,6 @@ export async function chatPipelineSSE(req, res, next) {
     }
 
     // Para endpoints normales
-    return res.status(400).json({ error: "Mensaje no permitido para menores." });
+    res.status(400).json({ error: "Mensaje no permitido para menores." });
   }
 }

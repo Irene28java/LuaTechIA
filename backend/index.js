@@ -28,17 +28,17 @@ const supabase = createClient(
 const app = express();
 app.use(express.json());
 
-// -------------------- Health backend --------------------
+// Health check
 app.get("/health", (req, res) => {
   res.send("LuaTechIA Backend OK");
 });
 
-// -------------------- Rutas públicas --------------------
+// Public routes
 app.use("/auth/google", googleRouter);
 app.use("/downloads", downloadsRouter);
 app.use("/payments", paymentsRouter);
 
-// -------------------- Rutas protegidas --------------------
+// Protected routes
 app.use("/chat", authenticate, (req, res, next) => {
   req.supabase = supabase;
   next();
@@ -51,17 +51,15 @@ app.use("/ai", (req, res, next) => {
 
 app.use("/activities", authenticate, activitiesRouter);
 
-// -------------------- Servir frontend --------------------
+// Serve frontend
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
-// -------------------- Error handler --------------------
+// Error handler
 app.use((err, req, res, next) => {
   console.error("🔥 Backend Error:", err);
   res.status(500).json({ error: "Error interno del servidor" });

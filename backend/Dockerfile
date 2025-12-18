@@ -27,7 +27,7 @@ RUN cd frontend && npm run build
 FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-ENV PORT=3001  # Cambiado el puerto a 3001
+ENV PORT=3000
 
 # Copiar backend y node_modules
 COPY --from=build /app/backend /app/backend
@@ -42,6 +42,6 @@ COPY backend/lib ./backend/lib
 COPY backend/routes ./backend/routes
 COPY backend/middlewares ./backend/middlewares
 
-EXPOSE 3001 
+EXPOSE 3000 
 
 CMD ["node", "backend/index.js"]

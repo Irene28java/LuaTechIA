@@ -6,11 +6,11 @@ const input = process.argv[2];
 const outputDir = "./frontend/public/icons";
 
 if (!input) {
-  console.error("Debes indicar la imagen base: node generate-icons.js logo.png");
+  console.error("Debes indicar la imagen base: node generate-icons.js logo_1.png");
   process.exit(1);
 }
 
-const sizes = [32, 72, 96, 128, 144, 152, 192, 384, 512];
+const sizes = [32, 72, 96, 128, 144, 152,180, 192, 384, 512];
 
 async function generate() {
   await fs.ensureDir(outputDir);
