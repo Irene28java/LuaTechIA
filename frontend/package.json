@@ -6,8 +6,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "dev:css": "postcss src/styles.css -o dist/styles.css",
-     "check-case": "git ls-files | Select-String 'sidebar.jsx'"
-
+    "check-case": "git ls-files | Select-String 'sidebar.jsx'"
   },
   "dependencies": {
     "@react-oauth/google": "^0.12.2",
