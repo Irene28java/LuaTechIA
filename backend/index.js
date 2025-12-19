@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
+import cors from "cors";
 
 // Routers
 import googleRouter from "./routes/googleAuth.js";
@@ -22,6 +23,7 @@ import { validateEnv } from "./lib/validateEnv.js";
 dotenv.config();
 validateEnv();
 
+// --- Supabase client ---
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY,
@@ -30,6 +32,15 @@ const supabase = createClient(
 
 const app = express();
 app.use(express.json());
+
+// --- CORS ---
+app.use(cors({
+  origin: [
+    "http://localhost:3000", 
+    process.env.FRONTEND_URL || "https://luatechia.onrender.com"
+  ],
+  credentials: true
+}));
 
 // --- Proxy routes ---
 app.use("/api/proxy", proxyClient);
@@ -59,6 +70,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Error interno del servidor" });
 });
 
+// --- Start server ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 

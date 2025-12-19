@@ -1,12 +1,13 @@
-require('dotenv').config();
+require("dotenv").config();
 
 module.exports = {
   apps: [
     {
-      name: 'lua-backend',
-      script: './index.js',        // apunta a tu index.js
+      name: "lua-backend",
+      cwd: "/root/LuaTechIA/backend",
+      script: "index.js",
       env: {
-        NODE_ENV: 'production',
+        NODE_ENV: "production",
         PORT: process.env.PORT,
         SUPABASE_KEY: process.env.SUPABASE_KEY,
         SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -29,9 +30,16 @@ module.exports = {
         GROQ_API_KEY: process.env.GROQ_API_KEY,
         GROQ_MODEL: process.env.GROQ_MODEL,
         JWT_SECRET: process.env.JWT_SECRET,
-        JWT_KEY: process.env.JWT_KEY
+        JWT_KEY: process.env.JWT_KEY,
       },
-      watch: false
+      watch: false,
+    },
+    {
+      name: "lua-tunnel",
+      cwd: "/root/LuaTechIA/backend",
+      script: "./start-tunnel.sh",
+      watch: false,
+      autorestart: true,
     },
   ],
 };
