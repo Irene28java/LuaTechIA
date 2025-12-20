@@ -1,180 +1,126 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useChat } from "../hooks/useChat.js";
 
 import Topbar from "../components/Topbar.jsx";
 import ChatBubble from "../components/ChatBubble.jsx";
 import ChatInput from "../components/ChatInput.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import Modal from "../components/Modal.jsx";
-
 import Subscription from "./Subscription.jsx";
-import { generateEvaluationPDF } from "../api/pdf.js";
 
 // ------------------ CONSTANTES ------------------
 const MAX_MESSAGES_FREE = 15;
-const WARNING_THRESHOLDS = [3, 2, 1];
 const MAX_VISIBLE_MESSAGES_FREE = 10;
 const LOCAL_STORAGE_KEY = "chat_free_message_count";
 
 // ------------------ COMPONENTE ------------------
 export default function ChatAdvanced() {
   const { user: authUser } = useAuth();
+  const { messages, sendMessage, loading, abort } = useChat();
 
-  const [user, setUser] = useState(authUser || null);
   const [role, setRole] = useState("niño");
-
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [isPreparing, setIsPreparing] = useState(false);
-
-  // ------------------ MENSAJES FREE ------------------
-  const [messageCount, setMessageCount] = useState(() => {
-    if (authUser) return 0;
-    return parseInt(localStorage.getItem(LOCAL_STORAGE_KEY)) || 0;
-  });
-
-  // ------------------ CONFIG ESTUDIANTE ------------------
   const [age, setAge] = useState(8);
   const [subject, setSubject] = useState("naturales");
   const [specialNeeds, setSpecialNeeds] = useState([]);
 
-  // ------------------ MODAL ------------------
+  const [input, setInput] = useState("");
   const [showSubscription, setShowSubscription] = useState(false);
+
+  const [messageCount, setMessageCount] = useState(() => {
+    if (authUser) return 0;
+    return Number(localStorage.getItem(LOCAL_STORAGE_KEY)) || 0;
+  });
 
   const messagesEndRef = useRef(null);
 
   // ------------------ TIEMPO ------------------
   const getTime = () => {
     const d = new Date();
-    return `${String(d.getHours()).padStart(2, "0")}:${String(
-      d.getMinutes()
-    ).padStart(2, "0")}`;
+    return `${d.getHours().toString().padStart(2, "0")}:${d
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
   };
 
-  // ------------------ MENSAJES HUMANOS ------------------
+  // ------------------ MENSAJES DE BIENVENIDA ------------------
   const getWelcomeMessage = () => {
-    if (role === "niño") {
-      return "¡Hola! 🤍 Soy Lúa.\nPuedes preguntarme sin miedo. Estoy aquí para ayudarte paso a paso, a tu ritmo.";
-    }
-
-    if (role === "profe") {
-      return "Hola, soy Lúa.\nPuedo ayudarte a crear actividades, exámenes y explicaciones adaptadas al nivel de tus alumnos, ahorrándote tiempo sin perder calidad educativa.";
-    }
-
-    return "Hola, soy Lúa.\nUn apoyo educativo tranquilo para familias. Ayudo a explicar, reforzar y acompañar sin presión ni discusiones.";
+    if (role === "niño")
+      return "¡Hola! 🤍 Soy Lúa.\nEstoy aquí para ayudarte paso a paso, a tu ritmo.";
+    if (role === "profe")
+      return "Hola, soy Lúa.\nTe ayudo a crear actividades educativas claras y adaptadas.";
+    return "Hola, soy Lúa.\nAcompaño a familias con explicaciones tranquilas.";
   };
 
-  const getPreparingMessage = () => {
-    if (role === "niño") {
-      return "Lúa se está preparando para ayudarte 🤍\nEn unos segundos continuamos, tómate tu tiempo.";
-    }
-
-    if (role === "profe") {
-      return "Preparando una explicación clara y una propuesta educativa adaptable…";
-    }
-
-    return "Preparando una explicación clara y tranquila…";
-  };
-
-  const getRemainingMessageNotice = (remaining) => {
-    if (remaining === 3)
-      return "🤍 Seguimos un poquito más.\nTe quedan 3 mensajes para hablar con Lúa.";
-    if (remaining === 2)
-      return "🤍 Nos queda un momento más juntos.\nTe quedan 2 mensajes.";
-    if (remaining === 1)
-      return "🤍 Este es el último mensaje de la versión gratuita.\nSi quieres, luego podemos seguir sin límites.";
+  // ------------------ AVISO DE MENSAJES GRATUITOS ------------------
+  const getRemainingNotice = (remaining) => {
+    if (remaining === 3) return "🤍 Te quedan 3 mensajes gratuitos.";
+    if (remaining === 2) return "🤍 Te quedan 2 mensajes.";
+    if (remaining === 1) return "🤍 Este es el último mensaje gratuito.";
     return null;
   };
 
-  // ------------------ BIENVENIDA AUTOMÁTICA ------------------
+  // ------------------ MENSAJE DE BIENVENIDA ------------------
   useEffect(() => {
     if (messages.length === 0) {
-      setTimeout(() => {
-        setMessages([
-          {
-            role: "assistant",
-            text: getWelcomeMessage(),
-            time: getTime(),
-          },
-        ]);
-      }, 600);
+      sendMessage({
+        message: getWelcomeMessage(),
+        role: "system",
+        time: getTime(),
+      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line
   }, [role]);
 
-  // ------------------ ENVÍO ------------------
-  const sendMessage = (text, roleMessage = "user") => {
-    if (!text.trim()) return;
-    setMessages((prev) => [...prev, { role: roleMessage, text, time: getTime() }]);
-  };
-
+  // ------------------ ENVÍO DE MENSAJES ------------------
   const handleSend = () => {
-    const text = input.trim();
-    if (!text) return;
+    if (!input.trim()) return;
 
-    // BLOQUEO FINAL
-    if (!user && messageCount >= MAX_MESSAGES_FREE) {
+    // Verificar límite para usuarios sin cuenta
+    if (!authUser && messageCount >= MAX_MESSAGES_FREE) {
       setShowSubscription(true);
       return;
     }
 
-    sendMessage(text, "user");
-
-    if (!user) {
-      const newCount = messageCount + 1;
+    const newCount = messageCount + 1;
+    if (!authUser) {
       setMessageCount(newCount);
-      localStorage.setItem(LOCAL_STORAGE_KEY, newCount.toString());
+      localStorage.setItem(LOCAL_STORAGE_KEY, newCount);
+    }
 
-      const remaining = MAX_MESSAGES_FREE - newCount;
-      const notice = getRemainingMessageNotice(remaining);
+    // Enviar mensaje a useChat
+    sendMessage({
+      message: input,
+      role,
+      age,
+      subject,
+      specialNeeds,
+      time: getTime(),
+    });
 
-      if (notice) {
-        setTimeout(() => {
-          sendMessage(notice, "assistant");
-        }, 600);
-      }
+    // Mostrar aviso de mensajes gratuitos restantes
+    const notice = getRemainingNotice(MAX_MESSAGES_FREE - newCount);
+    if (notice) {
+      setTimeout(() => {
+        sendMessage({
+          message: notice,
+          role: "system",
+          time: getTime(),
+        });
+      }, 400);
     }
 
     setInput("");
-    setIsPreparing(true);
-
-    // RESPUESTA DE LÚA (simulada / backend real aquí)
-    setTimeout(() => {
-      setIsPreparing(false);
-      sendMessage(
-        "Vamos a verlo juntos 😊\nExplícamelo un poco más o dime dónde te has quedado.",
-        "assistant"
-      );
-    }, 1200);
   };
 
-  // ------------------ EXÁMENES (SE MANTIENE) ------------------
-  const detectExamRequest = (text) => {
-    const triggers = ["examen", "prueba", "evaluación", "test"];
-    return triggers.some((t) => text.toLowerCase().includes(t));
-  };
-
-  const autoGenerateExam = async () => {
-    await generateEvaluationPDF({
-      title: `Examen de ${subject}`,
-      student: user?.name || "Alumno",
-      age,
-      subject,
-      evaluationData: Array.from({ length: 20 }).map((_, i) => ({
-        q: `Pregunta ${i + 1}`,
-        a: "Respuesta esperada",
-      })),
-    });
-  };
-
-  // ------------------ SCROLL ------------------
+  // ------------------ SCROLL AUTOMÁTICO ------------------
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isPreparing]);
+  }, [messages, loading]);
 
-  // ------------------ HISTORIAL LIMITADO FREE ------------------
+  // ------------------ FILTRADO DE MENSAJES GRATUITOS ------------------
   const visibleMessages =
-    !user && messages.length > MAX_VISIBLE_MESSAGES_FREE
+    !authUser && messages.length > MAX_VISIBLE_MESSAGES_FREE
       ? messages.slice(-MAX_VISIBLE_MESSAGES_FREE)
       : messages;
 
@@ -188,21 +134,19 @@ export default function ChatAdvanced() {
         onChangeAge={setAge}
         onChangeSubject={setSubject}
         onToggleNeed={(n) =>
-          setSpecialNeeds((prev) =>
-            prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]
+          setSpecialNeeds((p) =>
+            p.includes(n) ? p.filter((x) => x !== n) : [...p, n]
           )
         }
-        onSelectFolder={() => {}}
-        onSelectTemplate={() => {}}
       />
 
       <main className="flex-1 ml-4 rounded-3xl bg-white/30 p-6 flex flex-col">
         <Topbar
-          user={authUser || user}
+          user={authUser}
           role={role}
           onChangeRole={setRole}
-          onLoginClick={() => setUser({ name: "Usuario", age })}
           onUpgradeClick={() => setShowSubscription(true)}
+          onAbort={abort}
         />
 
         <div className="flex-1 overflow-y-auto">
@@ -210,16 +154,10 @@ export default function ChatAdvanced() {
             <ChatBubble key={i} {...m} />
           ))}
 
-          {!user && messages.length > MAX_VISIBLE_MESSAGES_FREE && (
-            <div className="text-center text-sm text-gray-500 my-3">
-              El historial completo está disponible con un plan de acompañamiento 🤍
-            </div>
-          )}
-
-          {isPreparing && (
+          {loading && (
             <ChatBubble
               role="assistant"
-              text={getPreparingMessage()}
+              text="Lúa está pensando con calma 🤍"
               time={getTime()}
             />
           )}
@@ -232,7 +170,7 @@ export default function ChatAdvanced() {
 
       {showSubscription && (
         <Modal onClose={() => setShowSubscription(false)}>
-          <Subscription onClose={() => setShowSubscription(false)} />
+          <Subscription />
         </Modal>
       )}
     </div>

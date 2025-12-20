@@ -1,10 +1,7 @@
-// backend/controller/chat.controller.js
-import { buildSystemPrompt } from "../lib/buildSystemPrompt.js";
-import { generateAIResponse } from "../utils/chatAI.js";
-
 export async function chatStream(req, res) {
   const {
     message,
+    messages = [],
     role = "child",
     age = 7,
     subject = "naturales",
@@ -18,6 +15,14 @@ export async function chatStream(req, res) {
   res.setHeader("Connection", "keep-alive");
 
   try {
+    const context = [
+      ...messages.map(m => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.text
+      })),
+      { role: "user", content: message }
+    ];
+
     const systemPrompt = buildSystemPrompt({
       userId: req.user?.id || "anon",
       role,
@@ -31,7 +36,7 @@ export async function chatStream(req, res) {
 
     await generateAIResponse({
       systemPrompt,
-      userMessage: message,
+      context, // ✅ CONTEXTO LARGO
       onChunk: (chunk) => {
         res.write(`data: ${chunk}\n\n`);
       },
@@ -40,6 +45,7 @@ export async function chatStream(req, res) {
         res.end();
       }
     });
+
   } catch (error) {
     console.error("AI Stream Error:", error);
     res.write(`data: Error interno\n\n`);

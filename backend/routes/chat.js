@@ -1,12 +1,13 @@
-// backend/routes/chat.js
 import express from "express";
+import { authenticate } from "../middlewares/authenticate.js";
 import { chatPipelineSSE } from "../middlewares/chatPipelineSSE.js";
 import { saveMessage } from "../utils/saveMessage.js";
-import { tryModelsSequentially } from "../utils/chatAI.js"; // tu función que llama a Ollama/HF/Groq
+import { runPromptEngine } from "../utils/promptEngine.js"; // Motor central de prompts
+import { AIResponseSchema } from "../schemas/aiResponseSchema.js";
 
 const router = express.Router();
 
-router.post("/stream", chatPipelineSSE, async (req, res) => {
+router.post("/stream", authenticate, chatPipelineSSE, async (req, res) => {
   try {
     const {
       message,
@@ -20,29 +21,49 @@ router.post("/stream", chatPipelineSSE, async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: "No autorizado" });
 
+    // Cabeceras SSE
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
-    let assistantMessage = { role: "assistant", text: "", time: new Date().toISOString() };
+    // Concatenar chunks parciales
+    let accumulatedChunks = "";
 
-    // Función para enviar chunks SSE
+    // Enviar chunk parcial
     const sendChunk = (chunk) => {
-      assistantMessage.text += chunk;
+      accumulatedChunks += chunk;
       res.write(`data: ${chunk}\n\n`);
     };
 
-    // Función al finalizar streaming
+    // Al finalizar stream
     const endStream = async () => {
-      res.write("data: [DONE]\n\n");
-      res.end();
+      try {
+        const parsed = AIResponseSchema.parse(JSON.parse(accumulatedChunks));
 
-      // Guardar mensaje en Supabase
-      await saveMessage(req.supabase, userId, folderName, `Mensaje ${new Date().toLocaleTimeString()}`, assistantMessage.text);
+        // Enviar JSON final
+        res.write(`data: ${JSON.stringify(parsed)}\n\n`);
+        res.write("data: [DONE]\n\n");
+        res.end();
+
+        // Guardar mensaje final en Supabase
+        await saveMessage(
+          req.supabase,
+          userId,
+          folderName,
+          `Mensaje ${new Date().toLocaleTimeString()}`,
+          parsed.content.text || ""
+        );
+
+      } catch (err) {
+        console.error("[STREAM PARSE ERROR]", err.message);
+        res.write(`data: Error generando respuesta final.\n\n`);
+        res.write("data: [DONE]\n\n");
+        res.end();
+      }
     };
 
-    // Llamamos a la IA con tryModelsSequentially
-    await tryModelsSequentially({
+    // Llamar al motor de prompts con streaming
+    await runPromptEngine({
       message,
       role,
       age,
@@ -53,14 +74,15 @@ router.post("/stream", chatPipelineSSE, async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Error en /chat/stream:", err);
-    if (res.write) {
-      res.write(`data: Lo siento, ha ocurrido un error. 😅\n\n`);
-      res.write("data: [DONE]\n\n");
-      return res.end();
-    }
-    res.status(500).json({ error: "Error interno del servidor" });
+  console.error("Error en /chat/stream:", err);
+  if (res.write) {
+    res.write(`data: Ocurrió un error. 😅\n\n`);
+    res.write("data: [DONE]\n\n");
+    return res.end();
   }
+  res.status(500).json({ error: "Error interno del servidor" });
+}
+
 });
 
 export default router;

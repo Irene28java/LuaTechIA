@@ -4,6 +4,8 @@ import { authenticate } from "../middlewares/authenticate.js";
 import { tryModelsSequentially } from "../utils/chatAI.js";
 import { createClient } from "@supabase/supabase-js";
 import 'dotenv/config';
+import { AIResponseSchema } from "../schemas/aiResponseSchema.js"; // ✅ Import del esquema
+import { runAIAction } from "../utils/runAIAction.js"; // Asegúrate de tener esta función
 
 const router = express.Router();
 
@@ -71,14 +73,14 @@ router.post("/stream", authenticate, async (req, res) => {
       conversationId
     } = req.body;
 
-    console.log("Solicitud recibida:", req.body);  // Log de la solicitud completa
+    console.log("Solicitud recibida:", req.body);
 
     if (!message || typeof message !== "string") {
       return res.status(400).json({ error: "El campo 'message' es obligatorio y debe ser string" });
     }
 
     const mat = allowedSubjects.includes(subject.toLowerCase()) ? subject.toLowerCase() : "naturales";
-    console.log("Materia seleccionada:", mat);  // Log de la materia seleccionada
+    console.log("Materia seleccionada:", mat);
 
     // Cabeceras SSE
     res.setHeader("Content-Type", "text/event-stream");
@@ -96,28 +98,25 @@ router.post("/stream", authenticate, async (req, res) => {
     // ----------------- RESPUESTA EMOCIONAL -----------------
     const emo = emotionalResponse(message, role, age, mat);
     if (emo) {
-      console.log("Respuesta emocional generada:", emo);  // Log de la respuesta emocional
+      console.log("Respuesta emocional generada:", emo);
       res.write(`data: ${emo}\n\n`);
     }
 
-    // ----------------- STREAMING AI -----------------
-    console.log("Iniciando el proceso de streaming de IA...");
-    await tryModelsSequentially({
-      message,
-      role,
-      age,
-      subject: mat,
-      specialNeeds,
-      onChunk: (chunk) => {
-        console.log("Enviando chunk de IA:", chunk);  // Log del chunk recibido
-        res.write(`data: ${chunk}\n\n`);
-      },
-      onEnd: async () => {
-        console.log("Finalizando el streaming de IA...");  // Log al finalizar el streaming
-        res.write("data: [DONE]\n\n");
-        res.end();
-      }
-    });
+    // ----------------- RESPUESTA AI CON VALIDACIÓN -----------------
+    console.log("Iniciando el proceso de IA con validación de esquema...");
+    const finalAIResponse = await runAIAction({ message, role, age, subject: mat, specialNeeds });
+
+    try {
+      const parsed = AIResponseSchema.parse(finalAIResponse); // ✅ Validación estricta
+      res.write(`data: ${JSON.stringify(parsed)}\n\n`);
+      res.write("data: [DONE]\n\n");
+      res.end();
+    } catch (err) {
+      console.error("Error validando respuesta IA:", err);
+      res.write(`data: Error en la respuesta de IA\n\n`);
+      res.write("data: [DONE]\n\n");
+      res.end();
+    }
 
   } catch (err) {
     console.error("CHAT STREAM ERROR:", err);

@@ -1,51 +1,112 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
 
-// Páginas
+import PublicLayout from "./layouts/PublicLayout.jsx";
+import MainLayout from "./layouts/MainLayout.jsx";
+
+// 🌍 Páginas públicas
 import LandingPrincipal from "./pages/LandingPrincipal.jsx";
 import Login from "./pages/Login.jsx";
+import Privacy from "./pages/Privacy.jsx";
+import Terms from "./pages/Terms.jsx";
+import Cookies from "./pages/Cookies.jsx";
+
+// 🔐 Páginas privadas adicionales (si las usas fuera del layout)
 import HomeIntro from "./pages/HomeIntro.jsx";
 import Subscription from "./pages/Subscription.jsx";
-import ChatAdvance from "./pages/ChatAdvanced.jsx";
-
-// Componentes
-import GoogleDriveKLM from "./components/google/GoogleDriveKLM.jsx";
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Rutas públicas */}
-          <Route path="/" element={<LandingPrincipal />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/workspace" element={<ChatAdvance />} />
-          <Route path="/google-drive" element={<GoogleDriveKLM />} />
+    <Router>
+      <Routes>
 
-          {/* Rutas privadas → solo usuarios autenticados */}
-          <Route
-            path="/home-intro"
-            element={
-              <PrivateRoute>
-                <HomeIntro />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/subscription"
-            element={
-              <PrivateRoute>
-                <Subscription />
-              </PrivateRoute>
-            }
-          />
+        {/* 🌍 PÚBLICO */}
+        <Route
+          path="/"
+          element={
+            <PublicLayout>
+              <LandingPrincipal />
+            </PublicLayout>
+          }
+        />
 
-          {/* Redirección por defecto */}
-          <Route path="*" element={<LandingPrincipal />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+        <Route
+          path="/login"
+          element={
+            <PublicLayout>
+              <Login />
+            </PublicLayout>
+          }
+        />
+
+        <Route
+          path="/privacy"
+          element={
+            <PublicLayout>
+              <Privacy />
+            </PublicLayout>
+          }
+        />
+
+        <Route
+          path="/terms"
+          element={
+            <PublicLayout>
+              <Terms />
+            </PublicLayout>
+          }
+        />
+
+        <Route
+          path="/cookies"
+          element={
+            <PublicLayout>
+              <Cookies />
+            </PublicLayout>
+          }
+        />
+
+        {/* 🔐 APP PRIVADA (ESTILO CHATGPT) */}
+        <Route
+          path="/workspace"
+          element={
+            <PrivateRoute>
+              <MainLayout />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 🔐 PRIVADAS SUELTAS (OPCIONAL) */}
+        <Route
+          path="/home-intro"
+          element={
+            <PrivateRoute>
+              <HomeIntro />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/subscription"
+          element={
+            <PrivateRoute>
+              <Subscription />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 🔁 FALLBACK */}
+        <Route
+          path="*"
+          element={
+            <PublicLayout>
+              <LandingPrincipal />
+            </PublicLayout>
+          }
+        />
+
+      </Routes>
+    </Router>
   );
 }

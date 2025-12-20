@@ -1,4 +1,3 @@
-// hooks/useChat.js
 import { useState, useRef, useEffect } from "react";
 import { EventSourcePolyfill } from "event-source-polyfill";
 
@@ -14,64 +13,70 @@ function emotionalResponse(userMessage, role="child", age=6, subject="general") 
 
   if (text.includes("cansado") || text.includes("agotado")) {
     respuestas.push(
-      `Veo que estás cansad@ 😴. Podemos hacer una actividad más ligera o un mini descanso.`,
-      `Parece que hoy has trabajado mucho. ¿Quieres un ejercicio divertido y corto sobre ${subject}?`,
-      `Si quieres, podemos repasar algo de ${subject} con juegos rápidos para que no te agotes.`
-    );
-  }
-  if (text.includes("triste") || text.includes("aburrido") || text.includes("deprimido")) {
-    respuestas.push(
-      `Siento que te sientas así 💛. ¿Quieres hablar un poco o prefieres hacer algo creativo de ${subject}?`,
-      `Vamos a cambiar un poco la energía 😃. ¿Qué tal una actividad divertida de ${subject}?`,
-      `Está bien sentirse triste a veces. Podemos hacer un mini juego o ejercicio de ${subject} para animarte.`
-    );
-  }
-  if (text.includes("estresado") || text.includes("enojado") || text.includes("frustrado")) {
-    respuestas.push(
-      `Parece que estás frustrad@ 😟. Respira hondo. Podemos hacer un repaso suave de ${subject}.`,
-      `Está bien sentirse así. Hagamos algo fácil y divertido de ${subject} para relajarnos.`,
-      `Vamos a convertir el estrés en aprendizaje con una actividad corta de ${subject}.`
+      `Veo que estás cansad@ 😴. Podemos hacer algo ligero.`,
+      `¿Quieres un ejercicio corto y divertido de ${subject}?`
     );
   }
 
-  if (respuestas.length > 0) return respuestas[Math.floor(Math.random() * respuestas.length)];
-  if (role === "padre") return "Estoy aquí para ayudarte a acompañar a tu hijo/a y ofrecer actividades adaptadas. 💙";
-  if (role === "profesor") return "Estoy aquí para ayudarte a preparar actividades educativas variadas y ahorrar tiempo. 🤍";
+  if (text.includes("triste") || text.includes("aburrido")) {
+    respuestas.push(
+      `Siento que te sientas así 💛. Estoy contigo.`,
+      `¿Hacemos algo creativo de ${subject}?`
+    );
+  }
+
+  if (text.includes("estresado") || text.includes("frustrado")) {
+    respuestas.push(
+      `Respiramos juntos 💨. Hagamos algo fácil de ${subject}.`
+    );
+  }
+
+  if (respuestas.length > 0)
+    return respuestas[Math.floor(Math.random() * respuestas.length)];
+
+  if (role === "padre")
+    return "Estoy aquí para ayudarte a acompañar el aprendizaje 💙";
+
+  if (role === "profesor")
+    return "Te ayudo a crear actividades educativas claras 🤍";
+
   return null;
 }
 
 // -------------------- HOOK USECHAT --------------------
-export function useChat({ onError }) {
+export function useChat({ onError } = {}) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const eventSourceRef = useRef(null);
 
-  // Agregar o actualizar último mensaje de assistant en tiempo real
+  const authToken = localStorage.getItem("authToken");
+
   const addOrUpdateAssistantMessage = (text) => {
     setMessages(prev => {
-      const newMessages = [...prev];
-      const lastMsg = newMessages[newMessages.length - 1];
-      if (lastMsg?.role === "assistant") {
-        lastMsg.text = text;
-      } else {
-        newMessages.push({ role: "assistant", text, time: new Date().toLocaleTimeString() });
-      }
-      return newMessages;
+      const copy = [...prev];
+      const last = copy[copy.length - 1];
+      if (last?.role === "assistant") last.text = text;
+      else copy.push({ role: "assistant", text, time: new Date().toLocaleTimeString() });
+      return copy;
     });
   };
 
-  const addMessage = (msg) => setMessages(prev => [...prev, msg]);
+  const addMessage = (msg) =>
+    setMessages(prev => [...prev, msg]);
 
   const saveMessage = async (msg) => {
     try {
       await fetch("/api/projects/auto", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`
+        },
         body: JSON.stringify({
           folderName: "Chat AI",
           title: `Mensaje ${new Date().toLocaleTimeString()}`,
           type: "chat",
-          content: msg.text || msg.content
+          content: msg.text
         })
       });
     } catch (err) {
@@ -79,12 +84,22 @@ export function useChat({ onError }) {
     }
   };
 
-  const sendMessage = async ({ message, role = "child", age = 7, subject = "naturales", specialNeeds = [] }) => {
+  const abort = () => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+      setLoading(false);
+    }
+  };
+
+  const sendMessage = async ({ message, role="child", age=7, subject="naturales", specialNeeds=[] }) => {
     if (!message.trim()) return;
 
-    const mat = allowedSubjects.includes(subject.toLowerCase()) ? subject.toLowerCase() : "naturales";
+    const mat = allowedSubjects.includes(subject.toLowerCase())
+      ? subject.toLowerCase()
+      : "naturales";
 
-    // 1️⃣ Respuesta emocional rápida
+    // 1️⃣ Respuesta emocional inmediata
     const emo = emotionalResponse(message, role, age, mat);
     if (emo) {
       const emoMsg = { role: "assistant", text: emo, time: new Date().toLocaleTimeString() };
@@ -94,87 +109,82 @@ export function useChat({ onError }) {
       return;
     }
 
-    // 2️⃣ Mensaje de usuario
+    // 2️⃣ Mensaje usuario
     addMessage({ role: "user", text: message, time: new Date().toLocaleTimeString() });
     setLoading(true);
 
-    // 3️⃣ SSE a backend
-    if (eventSourceRef.current) eventSourceRef.current.close();
-    const evtSource = new EventSourcePolyfill(`${import.meta.env.VITE_API_URL}/chat/stream`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, role, age, subject: mat, specialNeeds })
-    });
-    eventSourceRef.current = evtSource;
-
+    // 3️⃣ SSE
+    abort();
     let assistantText = "";
 
-    evtSource.onmessage = async (e) => {
-      if (e.data === "[DONE]") {
-        addOrUpdateAssistantMessage(assistantText);
-        saveMessage({ role: "assistant", text: assistantText });
-        setLoading(false);
-        evtSource.close();
-        return;
-      }
+    try {
+      const evtSource = new EventSourcePolyfill(
+        `${import.meta.env.VITE_API_URL}/chat/stream`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`
+          },
+          withCredentials: false,
+          body: JSON.stringify({
+            message,
+            role,
+            age,
+            subject: mat,
+            specialNeeds,
+            messages
+          })
+        }
+      );
 
-      if (e.data.startsWith("Lo siento")) {
-        assistantText = e.data;
-        addOrUpdateAssistantMessage(assistantText);
-        setLoading(false);
-        evtSource.close();
-        if (onError) onError(new Error(e.data));
+      eventSourceRef.current = evtSource;
 
-        // Fallback
+      evtSource.onmessage = (e) => {
+        if (e.data === "[DONE]") {
+          saveMessage({ role: "assistant", text: assistantText });
+          setLoading(false);
+          evtSource.close();
+          return;
+        }
+        assistantText += e.data;
+        addOrUpdateAssistantMessage(assistantText);
+      };
+
+      evtSource.onerror = async (err) => {
+        console.error("SSE error:", err);
+        evtSource.close();
+        setLoading(false);
+        if (onError) onError(err);
+
+        // 4️⃣ Fallback
         try {
           const res = await fetch(`${import.meta.env.VITE_API_URL}/chat/fallback`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authToken}`
+            },
             body: JSON.stringify({ message, role, age, subject: mat, specialNeeds })
           });
           const data = await res.json();
-          assistantText = data.response;
-          addOrUpdateAssistantMessage(assistantText);
-          saveMessage({ role: "assistant", text: assistantText });
+          addOrUpdateAssistantMessage(data.response);
+          saveMessage({ role: "assistant", text: data.response });
         } catch (err2) {
           console.error("Fallback failed:", err2);
           if (onError) onError(err2);
         }
-        return;
-      }
-
-      // 4️⃣ Acumula chunks en tiempo real
-      assistantText += e.data;
-      addOrUpdateAssistantMessage(assistantText);
-    };
-
-    evtSource.onerror = async (err) => {
-      console.error("SSE error:", err);
-      evtSource.close();
+      };
+    } catch (err) {
+      console.error("Error iniciando SSE:", err);
       setLoading(false);
       if (onError) onError(err);
-
-      // Fallback
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/chat/fallback`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message, role, age, subject: mat, specialNeeds })
-        });
-        const data = await res.json();
-        assistantText = data.response;
-        addOrUpdateAssistantMessage(assistantText);
-        saveMessage({ role: "assistant", text: assistantText });
-      } catch (err2) {
-        console.error("Fallback failed:", err2);
-        if (onError) onError(err2);
-      }
-    };
+    }
   };
 
   useEffect(() => {
-    return () => { if (eventSourceRef.current) eventSourceRef.current.close(); };
+    return () => abort();
   }, []);
 
-  return { messages, sendMessage, loading };
+  return { messages, sendMessage, loading, abort };
 }

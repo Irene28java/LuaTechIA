@@ -1,54 +1,97 @@
 // backend/utils/chatAI.js
-import axios from "axios";
+import fetch from "node-fetch";
 
+/**
+ * tryModelsSequentially
+ * Llama a los modelos secuencialmente hasta que uno responda correctamente.
+ * Streaming real: envía chunks al frontend vía SSE.
+ */
 export async function tryModelsSequentially({ message, role, age, subject, specialNeeds, onChunk, onEnd }) {
-  // Aquí defines el orden de prioridad de los modelos
-  const models = [
-    { name: "ollama", url: process.env.OLLAMA_URL },
-    { name: "huggingface", url: "https://api-inference.huggingface.co/models/" + process.env.HUGGINGFACE_MODEL },
-    { name: "groq", url: "https://api.groq.com/v1/models/" + process.env.GROQ_MODEL }
-  ];
-
-  for (let model of models) {
+  const models = ["ollama", "hf"]; // Orden de prioridad
+  for (const model of models) {
     try {
-      if (model.name === "ollama") {
-        const res = await axios.post(`${model.url}/generate`, { prompt: message, model: process.env.OLLAMA_MODEL, max_tokens: 500 }, {
-          headers: { Authorization: `Bearer ${process.env.CLIENT_SECRET}` }
-        });
-        // Simular chunking
-        for (let chunk of res.data.output.split(" ")) {
-          onChunk(chunk + " ");
-          await new Promise(r => setTimeout(r, 50));
-        }
-        onEnd();
+      if (model === "ollama") {
+        await callOllama({ message, role, age, subject, specialNeeds, onChunk, onEnd });
         return;
       }
-
-      if (model.name === "huggingface") {
-        const res = await axios.post(model.url, { inputs: message }, {
-          headers: { Authorization: `Bearer ${process.env.HF_API_KEY}` }
-        });
-        onChunk(res.data[0].generated_text || "");
-        onEnd();
+      if (model === "hf") {
+        await callHF({ message, role, age, subject, specialNeeds, onChunk, onEnd });
         return;
       }
-
-      if (model.name === "groq") {
-        const res = await axios.post(model.url, { prompt: message }, {
-          headers: { "Authorization": `Bearer ${process.env.GROQ_API_KEY}` }
-        });
-        onChunk(res.data.response || "");
-        onEnd();
-        return;
-      }
-
     } catch (err) {
-      console.error(`Error con modelo ${model.name}:`, err);
-      continue; // probar siguiente modelo
+      console.error(`[tryModelsSequentially] ${model} falló:`, err.message);
+      continue; // pasar al siguiente modelo
+    }
+  }
+  // Si todos fallan
+  onChunk("Lo siento, no pude generar respuesta 😅");
+  await onEnd();
+}
+
+/**
+ * callOllama
+ * Llamada a Ollama local/remota con streaming real
+ */
+async function callOllama({ message, role, age, subject, specialNeeds, onChunk, onEnd }) {
+  const res = await fetch(process.env.OLLAMA_URL || "http://localhost:11434/v1/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: process.env.OLLAMA_MODEL || "edu-assistant",
+      prompt: message,
+      stream: true
+    })
+  });
+
+  if (!res.ok) throw new Error(`Ollama API error: ${res.status}`);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let done = false;
+
+  while (!done) {
+    const { value, done: readerDone } = await reader.read();
+    done = readerDone;
+    if (value) {
+      const chunk = decoder.decode(value);
+      onChunk(chunk);
     }
   }
 
-  // Si todos fallan
-  onChunk("Lo siento, no pude generar respuesta 😅");
-  onEnd();
+  await onEnd();
+}
+
+/**
+ * callHF
+ * Llamada a Hugging Face con streaming
+ */
+async function callHF({ message, role, age, subject, specialNeeds, onChunk, onEnd }) {
+  const res = await fetch(`https://api-inference.huggingface.co/models/${process.env.HF_MODEL}`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.HF_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      inputs: message,
+      parameters: { max_new_tokens: 500, return_full_text: false, stream: true }
+    })
+  });
+
+  if (!res.ok) throw new Error(`HF API error: ${res.status}`);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let done = false;
+
+  while (!done) {
+    const { value, done: readerDone } = await reader.read();
+    done = readerDone;
+    if (value) {
+      const chunk = decoder.decode(value);
+      onChunk(chunk);
+    }
+  }
+
+  await onEnd();
 }
