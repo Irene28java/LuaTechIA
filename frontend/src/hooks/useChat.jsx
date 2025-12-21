@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { EventSourcePolyfill } from "event-source-polyfill";
 
+// Lista de materias permitidas
 const allowedSubjects = [
   "naturales","matematicas","lengua","sociales","ingles",
   "educacion artistica","musica","educacion fisica","valores"
@@ -43,7 +44,7 @@ function emotionalResponse(userMessage, role="child", age=6, subject="general") 
   return null;
 }
 
-// -------------------- HOOK USECHAT --------------------
+// -------------------- HOOK useChat --------------------
 export function useChat({ onError } = {}) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -61,26 +62,24 @@ export function useChat({ onError } = {}) {
     });
   };
 
-  const addMessage = (msg) =>
-    setMessages(prev => [...prev, msg]);
+  const addMessage = (msg) => setMessages(prev => [...prev, msg]);
 
   const saveMessage = async (msg) => {
     try {
-      await fetch("/api/projects/auto", {
+      await fetch("/api/supabase/saveMessage", { // Endpoint seguro en backend
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`
         },
         body: JSON.stringify({
-          folderName: "Chat AI",
-          title: `Mensaje ${new Date().toLocaleTimeString()}`,
-          type: "chat",
-          content: msg.text
+          role: msg.role,
+          content: msg.text || msg.content,
+          timestamp: new Date().toISOString()
         })
       });
     } catch (err) {
-      console.error("Error guardando mensaje:", err);
+      console.error("Error guardando mensaje en Supabase:", err);
     }
   };
 
@@ -157,7 +156,7 @@ export function useChat({ onError } = {}) {
         setLoading(false);
         if (onError) onError(err);
 
-        // 4️⃣ Fallback
+        // 4️⃣ Fallback seguro
         try {
           const res = await fetch(`${import.meta.env.VITE_API_URL}/chat/fallback`, {
             method: "POST",

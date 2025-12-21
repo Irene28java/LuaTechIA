@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import cors from "cors";
+import fetch from "node-fetch"; // Para Ollama
 
 // Routers
 import googleRouter from "./routes/googleAuth.js";
@@ -58,11 +59,48 @@ app.use("/chat", authenticate, (req, res, next) => { req.supabase = supabase; ne
 app.use("/ai", (req, res, next) => { req.supabase = supabase; next(); }, aiRouter);
 app.use("/activities", authenticate, activitiesRouter);
 
-// --- Serve frontend ---
+// --- Ollama streaming route ---
+app.post("/ollama", async (req, res) => {
+  const { message, model } = req.body;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.flushHeaders();
+
+  try {
+    const response = await fetch("http://127.0.0.1:11434/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: model || "llama2",
+        messages: [{ role: "user", content: message }],
+        stream: true
+      }),
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      res.write(`data: ${chunk}\n\n`);
+    }
+
+    res.end();
+  } catch (err) {
+    console.error("🔥 Ollama Error:", err);
+    res.status(500).json({ error: "Error en Ollama" });
+  }
+});
+
+// --- Serve frontend (Vite build) ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, '../frontend/dist/index.html')));
+const frontendPath = path.join(__dirname, '../frontend/dist');
+app.use(express.static(frontendPath));
+app.get("*", (req, res) => res.sendFile(path.join(frontendPath, "index.html")));
 
 // --- Error handler ---
 app.use((err, req, res, next) => {
@@ -71,7 +109,9 @@ app.use((err, req, res, next) => {
 });
 
 // --- Start server ---
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 LuaTechIA FULL APP corriendo en puerto ${PORT}`);
+});
 
 export default app;
