@@ -33,16 +33,9 @@ h1, h2, h3 {
 
 /* ================= Fondo cielo ================= */
 .bg-sky-clouds {
-  background: linear-gradient(
-    180deg,
-    #eaf4ff 0%,
-    #f5faff 55%,
-    #ffffff 100%
-  );
-  background-image: url("/images/nubes.png"); /* Esta ruta es clave */
-  background-repeat: repeat-x;
-  background-position: top;
-  background-size: auto;
+  background: url("/images/nubes.png") repeat-x top;
+  background-size: cover;
+  background-color: #eaf4ff;
 }
 
 /* ================= BOTONES ================= */

@@ -1,3 +1,5 @@
+import  React from "react";
+
 export default function SkyLayout({ sidebar, children }) {
   return (
     <div className="min-h-screen w-full bg-sky-clouds flex">
