@@ -39,9 +39,10 @@ h1, h2, h3 {
     #f5faff 55%,
     #ffffff 100%
   );
-  background-image: url("/images/nubes.png");
+  background-image: url("/images/nubes.png"); /* Esta ruta es clave */
   background-repeat: repeat-x;
   background-position: top;
+  background-size: auto;
 }
 
 /* ================= BOTONES ================= */
