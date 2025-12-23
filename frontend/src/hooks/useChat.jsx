@@ -45,7 +45,8 @@ function emotionalResponse(userMessage, role="child", age=6, subject="general") 
 }
 
 // -------------------- HOOK useChat --------------------
-export function useChat({ onError } = {}) {
+export default function useChat({ onError } = {}) {
+
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const eventSourceRef = useRef(null);

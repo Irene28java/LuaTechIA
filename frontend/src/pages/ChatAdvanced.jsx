@@ -8,6 +8,7 @@ import ChatInput from "../components/ChatInput.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import Modal from "../components/Modal.jsx";
 import Subscription from "./Subscription.jsx";
+import SkyLayout from "../layout/SkyLayout";
 
 const MAX_MESSAGES_FREE = 15;
 const MAX_VISIBLE_MESSAGES_FREE = 10;
@@ -30,6 +31,7 @@ export default function ChatAdvanced() {
   });
 
   const messagesEndRef = useRef(null);
+
   const getTime = () => {
     const d = new Date();
     return `${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}`;
@@ -81,33 +83,64 @@ export default function ChatAdvanced() {
     setInput("");
   };
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
-  const visibleMessages = !authUser && messages.length > MAX_VISIBLE_MESSAGES_FREE
-    ? messages.slice(-MAX_VISIBLE_MESSAGES_FREE)
-    : messages;
+  const visibleMessages =
+    !authUser && messages.length > MAX_VISIBLE_MESSAGES_FREE
+      ? messages.slice(-MAX_VISIBLE_MESSAGES_FREE)
+      : messages;
 
   return (
-    <div className="w-full h-screen flex bg-gradient-to-br from-[#f4dbe7] to-[#e5d4f6] p-4">
-      <Sidebar
-        age={age} subject={subject} specialNeeds={specialNeeds}
-        onChangeAge={setAge} onChangeSubject={setSubject}
-        onToggleNeed={(n) => setSpecialNeeds((p) => p.includes(n) ? p.filter(x => x!==n) : [...p,n])}
+    <SkyLayout
+      sidebar={
+        <Sidebar
+          age={age}
+          subject={subject}
+          specialNeeds={specialNeeds}
+          onChangeAge={setAge}
+          onChangeSubject={setSubject}
+          onToggleNeed={(n) =>
+            setSpecialNeeds((p) =>
+              p.includes(n) ? p.filter(x => x !== n) : [...p, n]
+            )
+          }
+          onSelectFolder={() => {}}
+          onSelectTemplate={() => {}}
+        />
+      }
+    >
+      <Topbar
+        title="Aula virtual"
+        user={authUser}
+        role={role}
+        onChangeRole={setRole}
+        onUpgradeClick={() => setShowSubscription(true)}
+        onAbort={abort}
       />
 
-      <main className="flex-1 ml-4 rounded-3xl bg-white/30 p-6 flex flex-col">
-        <Topbar user={authUser} role={role} onChangeRole={setRole} onUpgradeClick={() => setShowSubscription(true)} onAbort={abort} />
+      <div className="flex-1 overflow-y-auto">
+        {visibleMessages.map((m, i) => (
+          <ChatBubble key={i} {...m} />
+        ))}
+        {loading && (
+          <ChatBubble
+            role="assistant"
+            text="Lúa está pensando con calma"
+            time={getTime()}
+          />
+        )}
+        <div ref={messagesEndRef} />
+      </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {visibleMessages.map((m,i) => <ChatBubble key={i} {...m} />)}
-          {loading && <ChatBubble role="assistant" text="Lúa está pensando con calma 🤍" time={getTime()} />}
-          <div ref={messagesEndRef} />
-        </div>
+      <ChatInput input={input} setInput={setInput} onSend={handleSend} />
 
-        <ChatInput input={input} setInput={setInput} onSend={handleSend} />
-      </main>
-
-      {showSubscription && <Modal onClose={() => setShowSubscription(false)}><Subscription /></Modal>}
-    </div>
+      {showSubscription && (
+        <Modal onClose={() => setShowSubscription(false)}>
+          <Subscription />
+        </Modal>
+      )}
+    </SkyLayout>
   );
 }
