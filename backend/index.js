@@ -10,6 +10,8 @@ import fetch from "node-fetch"; // Para Ollama
 import googleRouter from "./routes/googleAuth.js";
 import chatRouter from "./routes/chat.js";
 import aiRouter from "./routes/ai.js";
+
+
 import activitiesRouter from "./routes/activities.js";
 import downloadsRouter from "./routes/downloads.js";
 import paymentsRouter from "./routes/payments.js";
@@ -55,7 +57,7 @@ app.use("/downloads", downloadsRouter);
 app.use("/payments", paymentsRouter);
 
 // --- Protected routes ---
-app.use("/chat", authenticate, (req, res, next) => { req.supabase = supabase; next(); }, chatRouter);
+app.use("/chat", authenticate, chatRouter);
 app.use("/ai", (req, res, next) => { req.supabase = supabase; next(); }, aiRouter);
 app.use("/activities", authenticate, activitiesRouter);
 

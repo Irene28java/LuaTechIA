@@ -1,6 +1,8 @@
 // src/pages/ChatWorkspace.jsx
 import React, { useState, useEffect } from "react";
 import { Rnd } from "react-rnd";
+
+import ChatAdvanced from "./ChatAdvanced.jsx";
 import Activities from "../components/Activities.jsx";
 import Tasks from "../components/Tasks.jsx";
 import Quizzes from "../components/Quizzes.jsx";
@@ -10,8 +12,11 @@ import Templates from "../components/Templates.jsx";
 
 export default function ChatWorkspace({ sidebarProps }) {
   const [openModule, setOpenModule] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false); // Para móviles
-  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [windowSize, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
 
   const modules = {
     activities: { component: Activities, width: 600, height: 400 },
@@ -22,98 +27,72 @@ export default function ChatWorkspace({ sidebarProps }) {
     templates: { component: Templates, width: 500, height: 300 },
   };
 
-  // Actualizar tamaño de ventana para mobile responsiveness
   useEffect(() => {
-    const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const resize = () =>
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
   }, []);
 
   return (
     <div className="flex h-screen overflow-hidden">
+
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 bg-white/30 backdrop-blur-2xl border-r border-white/20 shadow-2xl transform transition-transform duration-300 md:static md:translate-x-0 w-72 ${
+        className={`fixed inset-y-0 left-0 z-50 bg-white/30 backdrop-blur-2xl
+        border-r border-white/20 shadow-2xl transform transition-transform
+        duration-300 md:static md:translate-x-0 w-72 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <sidebarProps.component {...sidebarProps.props} />
       </div>
 
-      {/* Botón para abrir/cerrar sidebar en móviles */}
+      {/* Mobile toggle */}
       <button
-        className="fixed top-4 left-4 z-60 md:hidden p-2 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-500 transition"
+        className="fixed top-4 left-4 z-60 md:hidden p-2 bg-blue-600
+        text-white rounded-xl shadow-lg"
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
-        {sidebarOpen ? "Cerrar ☰" : "Abrir ☰"}
+        ☰
       </button>
 
-      {/* Área principal */}
-      <div className="flex-1 relative p-6 bg-gradient-to-b from-[#0b1124] to-[#1a1f38] text-white overflow-auto custom-scroll">
-        <h1 className="text-2xl mb-4 font-semibold">Chat Principal</h1>
+      {/* MAIN */}
+      <div className="flex-1 relative bg-gradient-to-b from-[#0b1124] to-[#1a1f38] text-white">
 
-        {/* Botones de módulos */}
-        <div className="flex gap-2 mb-4 flex-wrap">
-          {Object.keys(modules).map((key) => (
+        {/* CHAT PRINCIPAL */}
+        <ChatAdvanced />
+
+        {/* TOOLBAR */}
+        <div className="absolute top-4 right-4 flex gap-2 z-40">
+          {Object.keys(modules).map(key => (
             <button
               key={key}
               onClick={() => setOpenModule(key)}
-              className={`px-3 py-1 rounded-lg shadow-md text-white font-medium hover:scale-105 transition ${
-                key === "activities"
-                  ? "bg-cyan-500 hover:bg-cyan-400"
-                  : key === "tasks"
-                  ? "bg-green-500 hover:bg-green-400"
-                  : key === "quizzes"
-                  ? "bg-yellow-500 hover:bg-yellow-400"
-                  : key === "whiteboard"
-                  ? "bg-red-500 hover:bg-red-400"
-                  : key === "pdf"
-                  ? "bg-blue-600 hover:bg-blue-500"
-                  : "bg-purple-500 hover:bg-purple-400"
-              }`}
+              className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500"
             >
-              {key.charAt(0).toUpperCase() + key.slice(1)}
+              {key}
             </button>
           ))}
         </div>
 
-        {/* Módulo flotante */}
+        {/* MODULOS FLOTANTES — NO SE TOCA */}
         {openModule && (
           <Rnd
             default={{
-              x: 50,
-              y: 50,
+              x: 80,
+              y: 80,
               width: Math.min(modules[openModule].width, windowSize.width * 0.9),
-              height: Math.min(modules[openModule].height, windowSize.height * 0.6),
+              height: Math.min(modules[openModule].height, windowSize.height * 0.7),
             }}
-            minWidth={300}
-            minHeight={200}
             bounds="parent"
-            className="bg-white/10 backdrop-blur-lg rounded-xl shadow-2xl overflow-auto z-50 border border-white/20"
-            enableResizing={{
-              top: true,
-              right: true,
-              bottom: true,
-              left: true,
-              topRight: true,
-              bottomRight: true,
-              bottomLeft: true,
-              topLeft: true,
-            }}
+            className="bg-white/10 backdrop-blur-xl rounded-xl shadow-2xl z-50"
           >
-            <div className="relative w-full h-full flex flex-col">
-              {/* Barra de cierre */}
-              <div className="flex justify-end p-1 bg-white/20 backdrop-blur-sm rounded-t-xl">
-                <button
-                  onClick={() => setOpenModule(null)}
-                  className="text-white font-bold px-3 py-1 rounded hover:bg-red-400 transition"
-                >
-                  X
-                </button>
+            <div className="h-full flex flex-col">
+              <div className="flex justify-end p-2">
+                <button onClick={() => setOpenModule(null)}>✕</button>
               </div>
-
-              {/* Contenido del módulo */}
-              <div className="flex-1 p-4 overflow-auto text-black bg-white/20 rounded-b-xl custom-scroll">
+              <div className="flex-1 p-4 overflow-auto">
                 {React.createElement(modules[openModule].component)}
               </div>
             </div>

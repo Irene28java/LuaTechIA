@@ -6,7 +6,7 @@ services:
     ports:
       - "80:80"
     environment:
-      - PORT=3001
+      - PORT=3000
       - JWT_SECRET=${JWT_SECRET}
       - STRIPE_SECRET=${STRIPE_SECRET}
       - HF_API_KEY=${HF_API_KEY}
