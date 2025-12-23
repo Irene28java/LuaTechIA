@@ -1,5 +1,5 @@
 // backend/utils/promptEngine.js
-import { AIResponseSchema } from "../schemas/aiResponseSchema.js";
+import { AIResponseSchema } from "../ai/aiResponseSchema.js";
 import { tryModelsSequentially } from "./chatAI.js";
 
 /**
