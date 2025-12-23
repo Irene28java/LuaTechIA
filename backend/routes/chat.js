@@ -2,7 +2,7 @@ import express from "express";
 import { authenticate } from "../middlewares/authenticate.js";
 import { chatPipelineSSE } from "../middlewares/chatPipelineSSE.js";
 import { saveMessage } from "../utils/saveMessage.js";
-import { runPromptEngine } from "../utils/promptEngine.js";
+import { runPromptEngine } from "../utils/PromptEngine.js";
 import { AIResponseSchema } from "../schemas/aiResponseSchema.js";
 
 const router = express.Router();
