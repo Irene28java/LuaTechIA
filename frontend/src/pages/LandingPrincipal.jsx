@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import SkyLayout from "../layout/SkyLayout";
+import SkyLayout from "../layouts/SkyLayout";
 import TopBar from "../components/TopBar";
 
 export default function LandingPrincipal() {

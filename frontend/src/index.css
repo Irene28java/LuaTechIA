@@ -39,7 +39,7 @@ h1, h2, h3 {
     #f5faff 55%,
     #ffffff 100%
   );
-  background-image: url("/frontend/public/images/nubes.png");
+  background-image: url("/images/nubes.png");
   background-repeat: repeat-x;
   background-position: top;
 }
