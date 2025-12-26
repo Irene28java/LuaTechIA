@@ -11,7 +11,7 @@ import Login from "./pages/Login.jsx";
 import Privacy from "./pages/Privacy.jsx";
 import Terms from "./pages/Terms.jsx";
 import Cookies from "./pages/Cookies.jsx";
-import ChatWorkspace from "./pages/ChatWorkspace.jsx";
+import ChatWorkspace from "./pages/ChatWorkSpace.jsx";
 
 // 🔐 Páginas privadas adicionales (si las usas fuera del layout)
 import HomeIntro from "./pages/HomeIntro.jsx";

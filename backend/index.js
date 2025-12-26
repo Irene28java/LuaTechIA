@@ -70,7 +70,7 @@ app.post("/ollama", async (req, res) => {
   res.flushHeaders();
 
   try {
-    const response = await fetch("http://127.0.0.1:11434/v1/chat/completions", {
+    const response = await fetch("http://luatechia.loca.lt/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

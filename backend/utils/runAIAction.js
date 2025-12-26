@@ -1,5 +1,5 @@
 // backend/utils/runAIAction.js
-import { runPromptEngine } from "./PromptEngine.js";
+import { runPromptEngine } from "../promptEngine";
 
 /**
  * Wrapper de runPromptEngine para mantener compatibilidad con código antiguo
