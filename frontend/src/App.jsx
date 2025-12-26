@@ -1,23 +1,20 @@
-
-
 import React from "react";
-import { HashRouter as Router } from "react-router-dom";
+import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import PrivateRoute from "./components/PrivateRoute.jsx";
 
 import PublicLayout from "./layouts/PublicLayout.jsx";
 import MainLayout from "./layouts/MainLayout.jsx";
 
-// 🌍 Páginas públicas
+// Páginas
 import LandingPrincipal from "./pages/LandingPrincipal.jsx";
 import Login from "./pages/Login.jsx";
 import Privacy from "./pages/Privacy.jsx";
 import Terms from "./pages/Terms.jsx";
 import Cookies from "./pages/Cookies.jsx";
 import ChatWorkspace from "./pages/ChatWorkspace.jsx";
-
-// 🔐 Páginas privadas adicionales (si las usas fuera del layout)
 import HomeIntro from "./pages/HomeIntro.jsx";
 import Subscription from "./pages/Subscription.jsx";
+
 
 export default function App() {
   return (
