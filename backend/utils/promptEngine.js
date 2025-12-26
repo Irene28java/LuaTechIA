@@ -1,15 +1,13 @@
 // backend/utils/promptEngine.js
 import { AIResponseSchema } from "../ai/aiResponseSchema.js";
-import { tryModelsSequentially } from "./chatAI.js";
+import { streamChat } from "../services/index.js";
+import { buildConversationContext } from "./conversation.js";
+import { createEmbedding } from "../services/embeddings.js";
+import { retrieveContext } from "./embeddings.js";
 
-/**
- * Motor central de prompts para generar contenido educativo
- * tipo GoogleKLM, adaptado a edad, materia y necesidades especiales.
- *
- * Opciones soportadas:
- * resumen | tarjeta | esquema | mapa_mental | cuestionario | examen | correccion | actividad
- */
 export async function runPromptEngine({
+  supabase,         // opcional si quieres contexto histórico
+  userId,           // opcional, para embeddings y memoria
   message,
   role = "child",
   age = 7,
@@ -19,100 +17,74 @@ export async function runPromptEngine({
   onEnd = () => {}
 }) {
   try {
-    // Construir prompt para la IA
-    const systemPrompt = `
-Eres un asistente educativo experto.
-Edad del estudiante: ${age}
-Materia: ${subject}
-Rol del usuario: ${role}
-Necesidades especiales: ${specialNeeds.join(", ") || "ninguna"}
+    // 🔹 Construir contexto conversacional previo
+    let conversationContext = "";
+    if (supabase && userId) {
+      conversationContext = await buildConversationContext({
+        supabase,
+        userId,
+        newMessage: message
+      });
+    }
 
-Recibe un mensaje del estudiante/profesor:
+    // 🔹 Recuperar embeddings educativos
+    let relevantContextText = "";
+    if (supabase && userId) {
+      const userEmbedding = await createEmbedding(message);
+      const relevantContext = await retrieveContext(supabase, userId, userEmbedding);
+      relevantContextText = relevantContext.data?.map(r => r.content).join("\n") || "Ninguno";
+    }
+
+    // 🔹 Prompt final para la IA
+    const systemPrompt = `
+${conversationContext}
+
+CONTEXTOS EDUCATIVOS RELEVANTES:
+${relevantContextText}
+
+Mensaje del usuario:
 "${message}"
 
-Genera una respuesta en JSON que cumpla exactamente con el esquema Zod/AIResponseSchema:
-
-{
-  "type": "resumen | tarjeta | esquema | mapa_mental | cuestionario | examen | correccion | actividad",
-  "title": "string",
-  "age": number,
-  "subject": "string",
-  "content": {
-    "text": "string",
-    "bullets": ["string"],
-    "questions": [
-      { "q": "string", "a": "string" }
-    ],
-    "nodes": [
-      { "id": "string", "label": "string", "children": ["string"] }
-    ]
-  },
-  "suggestions": ["string"],
-  "canExport": true,
-  "canSave": true,
-  "recommendedNextAction": "cuestionario | actividad | tarjeta_didactica"
-}
-
-Instrucciones:
-- Adapta la complejidad y ejemplos a la edad del niño.
-- Devuelve solo JSON válido, sin texto adicional.
-- Para mapas mentales, llena "nodes" y "children".
-- Para cuestionarios/exámenes, llena "questions" con preguntas y respuestas.
-- Para tarjetas, llena "text" y "bullets".
-- Incluye siempre "canExport" y "canSave" como true.
-- Sugiere la siguiente acción educativa en "recommendedNextAction".
+Devuelve SOLO JSON válido que cumpla EXACTAMENTE este esquema (sin texto adicional):
+${JSON.stringify(AIResponseSchema.shape, null, 2)}
 `;
 
-    // Acumulador de chunks
-    let accumulatedChunks = "";
+    let accumulated = "";
 
-    // Ejecutar modelos secuencialmente (Ollama → Hugging Face → otros)
-    await tryModelsSequentially({
-      message: systemPrompt,
-      role,
-      age,
-      subject,
-      specialNeeds,
+    // 🔹 Ejecutar el streaming
+    await streamChat({
+      prompt: systemPrompt,
+      meta: { role, age, subject, specialNeeds },
       onChunk: (chunk) => {
-        accumulatedChunks += chunk;
-        onChunk(chunk); // enviar al cliente parcial
-      },
-      onEnd: async () => {
-        try {
-          const parsed = AIResponseSchema.parse(JSON.parse(accumulatedChunks));
-          onChunk(JSON.stringify(parsed)); // enviar JSON final
-          await onEnd();
-        } catch (err) {
-          console.error("[PromptEngine] Error validando JSON:", err.message);
-          onChunk(JSON.stringify({
-            type: "actividad",
-            title: "Error al generar contenido",
-            age,
-            subject,
-            content: { text: "No se pudo generar contenido válido.", bullets: [], questions: [], nodes: [] },
-            suggestions: [],
-            canExport: true,
-            canSave: true,
-            recommendedNextAction: "actividad"
-          }));
-          await onEnd();
-        }
+        accumulated += chunk;
+        onChunk(chunk);
       }
     });
 
+    // 🔹 Parsear y validar JSON final
+    try {
+      const parsed = AIResponseSchema.parse(JSON.parse(accumulated));
+      onChunk(JSON.stringify(parsed));
+    } catch (err) {
+      console.error("[PromptEngine] JSON inválido:", err.message);
+      onChunk(JSON.stringify({
+        type: "actividad",
+        title: "Error de generación",
+        age,
+        subject,
+        content: { text: "No se pudo generar contenido válido.", bullets: [], questions: [], nodes: [] },
+        suggestions: [],
+        canExport: true,
+        canSave: true,
+        recommendedNextAction: "actividad"
+      }));
+    }
+
+    await onEnd();
+
   } catch (err) {
     console.error("[PromptEngine] Error general:", err.message);
-    onChunk(JSON.stringify({
-      type: "actividad",
-      title: "Error interno",
-      age,
-      subject,
-      content: { text: "Ocurrió un error al generar contenido.", bullets: [], questions: [], nodes: [] },
-      suggestions: [],
-      canExport: true,
-      canSave: true,
-      recommendedNextAction: "actividad"
-    }));
+    onChunk(JSON.stringify({ error: "Error interno 😅" }));
     await onEnd();
   }
 }

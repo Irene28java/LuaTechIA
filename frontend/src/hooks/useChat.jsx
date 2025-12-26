@@ -1,56 +1,39 @@
 import { useState, useRef, useEffect } from "react";
 import { EventSourcePolyfill } from "event-source-polyfill";
 
-// Lista de materias permitidas
 const allowedSubjects = [
   "naturales","matematicas","lengua","sociales","ingles",
   "educacion artistica","musica","educacion fisica","valores"
 ];
 
-// -------------------- RESPUESTAS EMOCIONALES --------------------
 function emotionalResponse(userMessage, role="child", age=6, subject="general") {
   const text = userMessage.toLowerCase();
   const respuestas = [];
 
   if (text.includes("cansado") || text.includes("agotado")) {
-    respuestas.push(
-      `Veo que estás cansad@ 😴. Podemos hacer algo ligero.`,
-      `¿Quieres un ejercicio corto y divertido de ${subject}?`
-    );
+    respuestas.push(`Veo que estás cansad@ 😴. Podemos hacer algo ligero.`,
+                     `¿Quieres un ejercicio corto y divertido de ${subject}?`);
   }
-
   if (text.includes("triste") || text.includes("aburrido")) {
-    respuestas.push(
-      `Siento que te sientas así 💛. Estoy contigo.`,
-      `¿Hacemos algo creativo de ${subject}?`
-    );
+    respuestas.push(`Siento que te sientas así 💛. Estoy contigo.`,
+                     `¿Hacemos algo creativo de ${subject}?`);
   }
-
   if (text.includes("estresado") || text.includes("frustrado")) {
-    respuestas.push(
-      `Respiramos juntos 💨. Hagamos algo fácil de ${subject}.`
-    );
+    respuestas.push(`Respiramos juntos 💨. Hagamos algo fácil de ${subject}.`);
   }
 
   if (respuestas.length > 0)
     return respuestas[Math.floor(Math.random() * respuestas.length)];
 
-  if (role === "padre")
-    return "Estoy aquí para ayudarte a acompañar el aprendizaje 💙";
-
-  if (role === "profesor")
-    return "Te ayudo a crear actividades educativas claras 🤍";
-
+  if (role === "padre") return "Estoy aquí para ayudarte a acompañar el aprendizaje 💙";
+  if (role === "profesor") return "Te ayudo a crear actividades educativas claras 🤍";
   return null;
 }
 
-// -------------------- HOOK useChat --------------------
-export default function useChat({ onError } = {}) {
-
+export function useChat({ onError } = {}) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const eventSourceRef = useRef(null);
-
   const authToken = localStorage.getItem("authToken");
 
   const addOrUpdateAssistantMessage = (text) => {
@@ -67,7 +50,7 @@ export default function useChat({ onError } = {}) {
 
   const saveMessage = async (msg) => {
     try {
-      await fetch("/api/supabase/saveMessage", { // Endpoint seguro en backend
+      await fetch("/api/supabase/saveMessage", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -95,11 +78,9 @@ export default function useChat({ onError } = {}) {
   const sendMessage = async ({ message, role="child", age=7, subject="naturales", specialNeeds=[] }) => {
     if (!message.trim()) return;
 
-    const mat = allowedSubjects.includes(subject.toLowerCase())
-      ? subject.toLowerCase()
-      : "naturales";
+    const mat = allowedSubjects.includes(subject.toLowerCase()) ? subject.toLowerCase() : "naturales";
 
-    // 1️⃣ Respuesta emocional inmediata
+    // 1️⃣ Respuesta emocional rápida
     const emo = emotionalResponse(message, role, age, mat);
     if (emo) {
       const emoMsg = { role: "assistant", text: emo, time: new Date().toLocaleTimeString() };
@@ -109,7 +90,7 @@ export default function useChat({ onError } = {}) {
       return;
     }
 
-    // 2️⃣ Mensaje usuario
+    // 2️⃣ Guardar mensaje de usuario
     addMessage({ role: "user", text: message, time: new Date().toLocaleTimeString() });
     setLoading(true);
 
@@ -118,25 +99,14 @@ export default function useChat({ onError } = {}) {
     let assistantText = "";
 
     try {
-      const evtSource = new EventSourcePolyfill(
-        `${import.meta.env.VITE_API_URL}/chat/stream`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`
-          },
-          withCredentials: false,
-          body: JSON.stringify({
-            message,
-            role,
-            age,
-            subject: mat,
-            specialNeeds,
-            messages
-          })
-        }
-      );
+      const evtSource = new EventSourcePolyfill(`${import.meta.env.VITE_API_URL}/chat/stream`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ message, role, age, subject: mat, specialNeeds, messages }),
+      });
 
       eventSourceRef.current = evtSource;
 
@@ -157,7 +127,7 @@ export default function useChat({ onError } = {}) {
         setLoading(false);
         if (onError) onError(err);
 
-        // 4️⃣ Fallback seguro
+        // Fallback seguro
         try {
           const res = await fetch(`${import.meta.env.VITE_API_URL}/chat/fallback`, {
             method: "POST",
@@ -182,9 +152,7 @@ export default function useChat({ onError } = {}) {
     }
   };
 
-  useEffect(() => {
-    return () => abort();
-  }, []);
+  useEffect(() => () => abort(), []);
 
   return { messages, sendMessage, loading, abort };
 }

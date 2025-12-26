@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
-import { useChat } from "../hooks/useChat.js";
+import useChat from "../hooks/useChat.js"; // 👈 IMPORT CORRECTO
 
 import Topbar from "../components/Topbar.jsx";
 import ChatBubble from "../components/ChatBubble.jsx";
@@ -16,7 +16,7 @@ const LOCAL_STORAGE_KEY = "chat_free_message_count";
 
 export default function ChatAdvanced() {
   const { user: authUser } = useAuth();
-  const { messages, sendMessage, loading, abort } = useChat();
+  const { messages, sendMessage, loading } = useChat();
 
   const [role, setRole] = useState("niño");
   const [age, setAge] = useState(8);
@@ -38,21 +38,14 @@ export default function ChatAdvanced() {
   };
 
   const getWelcomeMessage = () => {
-    if (role === "niño") return "¡Hola! 🤍 Soy Lúa.\nEstoy aquí para ayudarte paso a paso, a tu ritmo.";
-    if (role === "profe") return "Hola, soy Lúa.\nTe ayudo a crear actividades educativas claras y adaptadas.";
+    if (role === "niño") return "¡Hola! 🤍 Soy Lúa.\nEstoy aquí para ayudarte paso a paso.";
+    if (role === "profe") return "Hola, soy Lúa.\nTe ayudo a crear actividades educativas.";
     return "Hola, soy Lúa.\nAcompaño a familias con explicaciones tranquilas.";
-  };
-
-  const getRemainingNotice = (remaining) => {
-    if (remaining === 3) return "🤍 Te quedan 3 mensajes gratuitos.";
-    if (remaining === 2) return "🤍 Te quedan 2 mensajes.";
-    if (remaining === 1) return "🤍 Este es el último mensaje gratuito.";
-    return null;
   };
 
   useEffect(() => {
     if (messages.length === 0) {
-      sendMessage({ message: getWelcomeMessage(), role: "system", time: getTime() });
+      sendMessage({ message: getWelcomeMessage(), role: "system" });
     }
     // eslint-disable-next-line
   }, [role]);
@@ -71,15 +64,7 @@ export default function ChatAdvanced() {
       localStorage.setItem(LOCAL_STORAGE_KEY, newCount);
     }
 
-    sendMessage({ message: input, role, age, subject, specialNeeds, time: getTime() });
-
-    const notice = getRemainingNotice(MAX_MESSAGES_FREE - newCount);
-    if (notice) {
-      setTimeout(() => {
-        sendMessage({ message: notice, role: "system", time: getTime() });
-      }, 400);
-    }
-
+    sendMessage({ message: input, role, age, subject, specialNeeds });
     setInput("");
   };
 
@@ -106,8 +91,6 @@ export default function ChatAdvanced() {
               p.includes(n) ? p.filter(x => x !== n) : [...p, n]
             )
           }
-          onSelectFolder={() => {}}
-          onSelectTemplate={() => {}}
         />
       }
     >
@@ -117,20 +100,26 @@ export default function ChatAdvanced() {
         role={role}
         onChangeRole={setRole}
         onUpgradeClick={() => setShowSubscription(true)}
-        onAbort={abort}
       />
 
       <div className="flex-1 overflow-y-auto">
         {visibleMessages.map((m, i) => (
-          <ChatBubble key={i} {...m} />
+          <ChatBubble
+            key={i}
+            role={m.role}
+            text={m.text}
+            time={m.time}
+          />
         ))}
+
         {loading && (
           <ChatBubble
             role="assistant"
-            text="Lúa está pensando con calma"
+            text="Lúa está pensando con calma…"
             time={getTime()}
           />
         )}
+
         <div ref={messagesEndRef} />
       </div>
 

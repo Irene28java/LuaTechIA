@@ -1,3 +1,5 @@
+
+
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -11,7 +13,7 @@ import Login from "./pages/Login.jsx";
 import Privacy from "./pages/Privacy.jsx";
 import Terms from "./pages/Terms.jsx";
 import Cookies from "./pages/Cookies.jsx";
-import ChatWorkspace from "./pages/ChatWorkSpace.jsx";
+import ChatWorkspace from "./pages/ChatWorkspace.jsx";
 
 // 🔐 Páginas privadas adicionales (si las usas fuera del layout)
 import HomeIntro from "./pages/HomeIntro.jsx";

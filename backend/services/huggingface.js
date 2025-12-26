@@ -1,3 +1,5 @@
+//backend/services/huggingface.js
+
 import axios from "axios";
 
 export async function hfGenerate(prompt, role = "child", age = 6, subject = "general") {

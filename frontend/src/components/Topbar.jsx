@@ -3,7 +3,7 @@ import { FiUser, FiMenu } from "react-icons/fi";
 import { GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 
-export default function TopBar({
+export default function Topbar({
   variant = "app", // "landing" | "app"
   title = "Aula virtual",
   user,
