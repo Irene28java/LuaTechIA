@@ -1,7 +1,7 @@
 
 
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { HashRouter as Router } from "react-router-dom";
 import PrivateRoute from "./components/PrivateRoute.jsx";
 
 import PublicLayout from "./layouts/PublicLayout.jsx";

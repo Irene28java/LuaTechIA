@@ -3,9 +3,8 @@
 @tailwind utilities;
 
 /* ================= Tipografía ================= */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Poppins:wght@500;600&display=swap');
-
 body {
+  margin: 0;
   font-family: 'Nunito', sans-serif;
   color: #5b6475;
 }
@@ -33,7 +32,9 @@ h1, h2, h3 {
 
 /* ================= Fondo cielo ================= */
 .bg-sky-clouds {
-  background: url("/images/nubes.png") repeat-x top;
+  background-image: url("/images/nubes.png");
+  background-repeat: repeat-x;
+  background-position: top;
   background-size: cover;
   background-color: #eaf4ff;
 }
@@ -52,7 +53,7 @@ h1, h2, h3 {
   transform: translateY(-2px);
 }
 
-/* ================= GLASS (reemplazo backdrop) ================= */
+/* ================= GLASS ================= */
 .glass-soft {
   background: rgba(255, 255, 255, 0.65);
   border-radius: 24px;
